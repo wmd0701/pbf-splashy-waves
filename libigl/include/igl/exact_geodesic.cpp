@@ -3193,20 +3193,20 @@ IGL_INLINE void igl::exact_geodesic(
   std::vector<igl::geodesic::SurfacePoint> target(VT.rows() + FT.rows());
   for (int i = 0; i < VS.rows(); i++)
   {
-    source[i] = (igl::geodesic::SurfacePoint(&mesh.vertices()[VS(i, 0)]));
+    source[i] = (igl::geodesic::SurfacePoint(&mesh.vertices()[VS(i)]));
   }
   for (int i = 0; i < FS.rows(); i++)
   {
-    source[i] = (igl::geodesic::SurfacePoint(&mesh.faces()[FS(i, 0)]));
+    source[i] = (igl::geodesic::SurfacePoint(&mesh.faces()[FS(i)]));
   }
 
   for (int i = 0; i < VT.rows(); i++)
   {
-    target[i] = (igl::geodesic::SurfacePoint(&mesh.vertices()[VT(i, 0)]));
+    target[i] = (igl::geodesic::SurfacePoint(&mesh.vertices()[VT(i)]));
   }
   for (int i = 0; i < FT.rows(); i++)
   {
-    target[i] = (igl::geodesic::SurfacePoint(&mesh.faces()[FT(i, 0)]));
+    target[i] = (igl::geodesic::SurfacePoint(&mesh.faces()[FT(i)]));
   }
 
   exact_algorithm.propagate(source);

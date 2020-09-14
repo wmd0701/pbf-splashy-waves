@@ -5,7 +5,7 @@
 #include <vector>
 #include <tuple>
 
-TEST_CASE("dirname: examples", "[igl]")
+TEST(dirname, examples)
 {
   const std::vector<
     std::tuple<std::string,std::string> >
@@ -41,7 +41,7 @@ TEST_CASE("dirname: examples", "[igl]")
   {
     std::string d;
     d = igl::dirname(std::get<0>(example));
-    REQUIRE (d == std::get<1>(example));
+    ASSERT_EQ(std::get<1>(example),d);
   }
 }
 

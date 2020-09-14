@@ -1,17 +1,14 @@
 cmake_minimum_required(VERSION 3.1)
 project(libigl_tutorials)
 
-### Conditionally compile certain modules depending on libraries found on the system
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)
-
-### Compile libigl in header-only mode for Python bindings
-option(LIBIGL_USE_STATIC_LIBRARY "Use LibIGL as static library" ON)
-
-### Adding libIGL: choose the path to your local copy libIGL
-if(NOT TARGET igl_common)
-  include(libigl)
-else()
-  include(LibiglDownloadExternal)
+### conditionally compile certain modules depending on libraries found on the system		
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../cmake)		
+	
+### Adding libIGL: choose the path to your local copy libIGL		
+if(NOT TARGET igl_common)		
+  include(libigl)		
+else()		
+  include(LibiglDownloadExternal)		
 endif()
 
 ### Download data
@@ -22,7 +19,7 @@ if(MSVC)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR})
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR})
 else()
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../")
 endif()
 
 ### Choose which chapters to compile
@@ -55,13 +52,11 @@ if(TUTORIALS_CHAPTER1)
   add_subdirectory("102_DrawMesh")
   add_subdirectory("103_Events")
   add_subdirectory("104_Colors")
+  add_subdirectory("105_Overlays")
   if(LIBIGL_WITH_OPENGL_GLFW_IMGUI)
-    add_subdirectory("105_Overlays")
     add_subdirectory("106_ViewerMenu")
-    add_subdirectory("109_ImGuizmo")
   endif()
   add_subdirectory("107_MultipleMeshes")
-  add_subdirectory("108_MultipleViews")
 endif()
 
 # Chapter 2
@@ -93,7 +88,6 @@ if(TUTORIALS_CHAPTER4)
   add_subdirectory("405_AsRigidAsPossible")
   add_subdirectory("406_FastAutomaticSkinningTransformations")
   add_subdirectory("407_BiharmonicCoordinates")
-  add_subdirectory("408_DirectDeltaMush")
 endif()
 
 # Chapter 5
@@ -148,9 +142,7 @@ if(TUTORIALS_CHAPTER7)
   add_subdirectory("707_SweptVolume")
   add_subdirectory("708_Picking")
   add_subdirectory("709_SLIM")
-  if(LIBIGL_WITH_TRIANGLE)
   add_subdirectory("710_SCAF")
-  endif()
   add_subdirectory("711_Subdivision")
   add_subdirectory("712_DataSmoothing")
   add_subdirectory("713_ShapeUp")
@@ -158,10 +150,4 @@ if(TUTORIALS_CHAPTER7)
     add_subdirectory("714_MarchingTets")
   endif()
   add_subdirectory("715_MeshImplicitFunction")
-  add_subdirectory("716_HeatGeodesics")
-  if(LIBIGL_WITH_CGAL)
-    add_subdirectory("717_FastWindingNumber")
-  endif()
-  add_subdirectory("718_IterativeClosestPoint")
-  add_subdirectory("719_ExplodedView")
 endif()

@@ -12,15 +12,14 @@
 namespace igl
 {
   // ORIENTED_FACETS Determines all "directed
-  // [facets](https://en.wikipedia.org/wiki/Simplex#Elements)" of a given set of
-  // simplicial elements. For a manifold triangle mesh, this computes all
+  // [facets](https://en.wikipedia.org/wiki/Simplex#Elements)" of a given set
+  // of simplicial elements. For a manifold triangle mesh, this computes all
   // half-edges. For a manifold tetrahedral mesh, this computes all half-faces.
   //
   // Inputs:
-  //   F  #F by simplex_size  list of simplices
+  //   F  #F by simplex_size list of simplices
   // Outputs:
-  //   E  #E by simplex_size-1  list of facets, such that E.row(f+#F*c) is the
-  //     facet opposite F(f,c)
+  //   E  #E by simplex_size-1  list of facets
   //
   // Note: this is not the same as igl::edges because this includes every
   // directed edge including repeats (meaning interior edges on a surface will

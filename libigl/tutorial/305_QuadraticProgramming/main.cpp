@@ -20,7 +20,10 @@ void solve(igl::opengl::glfw::Viewer &viewer)
   igl::active_set_params as;
   as.max_iter = 8;
   igl::active_set(Q,B,b,bc,Aeq,Beq,Aieq,Bieq,lx,ux,as,Z);
-  viewer.data().set_data(Z);
+  // Pseudo-color based on solution
+  Eigen::MatrixXd C;
+  igl::jet(Z,0,1,C);
+  viewer.data().set_colors(C);
 }
 
 bool key_down(igl::opengl::glfw::Viewer &viewer, unsigned char key, int mod)

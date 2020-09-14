@@ -35,7 +35,12 @@ int main(int argc, char *argv[])
   igl::opengl::glfw::Viewer viewer;
   viewer.data().set_mesh(V, F);
 
-  viewer.data().set_data(U);
+  // Compute pseudocolor for original function
+  MatrixXd C;
+  igl::jet(U,true,C);
+  // // Or for gradient magnitude
+  //igl::jet(GU_mag,true,C);
+  viewer.data().set_colors(C);
 
   // Average edge length divided by average gradient (for scaling)
   const double max_size = igl::avg_edge_length(V,F) / GU_mag.mean();

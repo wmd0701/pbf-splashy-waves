@@ -1,14 +1,13 @@
 #include <test_common.h>
 
-TEST_CASE("readOFF: simple", "[igl]")
-{
+TEST(readOFF, simple) {
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
     // wait... so this is actually testing test_common::load_mesh not readOFF
     // directly...
-    igl::read_triangle_mesh(test_common::data_path("cube.off"), V, F);
-    REQUIRE (V.rows() == 8);
-    REQUIRE (V.cols() == 3);
-    REQUIRE (F.rows() == 12);
-    REQUIRE (F.cols() == 3);
+    test_common::load_mesh("cube.off", V, F);
+    ASSERT_EQ(8, V.rows());   //has 8 vertex
+    ASSERT_EQ(3, V.cols());   //3D coordinates
+    ASSERT_EQ(12, F.rows());  //has 6*2=12 facets
+    ASSERT_EQ(3, F.cols());   //facets are triangles
 }

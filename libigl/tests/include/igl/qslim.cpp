@@ -6,7 +6,7 @@
 //#include <igl/hausdorff.h>
 #include <igl/writePLY.h>
 
-TEST_CASE("qslim: cylinder", "[igl]" "[slow]")
+TEST(qslim,cylinder)
 {
   using namespace igl;
   const int axis_devisions = 5;
@@ -18,8 +18,8 @@ TEST_CASE("qslim: cylinder", "[igl]" "[slow]")
   Eigen::MatrixXi G;
   Eigen::VectorXi I,J;
   qslim(V,F,2*axis_devisions,U,G,I,J);
-  REQUIRE (U.rows() == axis_devisions*2);
-  //double l,u;
+  ASSERT_EQ(axis_devisions*2,U.rows());
+  double l,u;
   igl::writePLY("qslim-cylinder-vf.ply",V,F);
   igl::writePLY("qslim-cylinder-ug.ply",U,G);
   const auto & hausdorff_lower_bound = [](
@@ -38,7 +38,7 @@ TEST_CASE("qslim: cylinder", "[igl]" "[slow]")
     return D.array().sqrt().maxCoeff();
   };
   //igl::hausdorff(V,F,U,G,1e-14,l,u);
-  REQUIRE (0 == Approx (hausdorff_lower_bound(V,F,U,G)).margin(2e-10));
+  ASSERT_NEAR(hausdorff_lower_bound(V,F,U,G),0,2e-10);
   //igl::hausdorff(U,G,V,F,1e-14,l,u);
-  REQUIRE (0 == Approx (hausdorff_lower_bound(U,G,V,F)).margin(2e-10));
+  ASSERT_NEAR(hausdorff_lower_bound(U,G,V,F),0,2e-10);
 }

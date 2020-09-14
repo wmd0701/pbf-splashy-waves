@@ -17,13 +17,13 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
   {
     // Plot the 3D mesh
     viewer.data().set_mesh(V,F);
-    viewer.core().align_camera_center(V,F);
+    viewer.core.align_camera_center(V,F);
   }
   else if (key == '2')
   {
     // Plot the mesh in 2D using the UV coordinates as vertex coordinates
     viewer.data().set_mesh(V_uv,F);
-    viewer.core().align_camera_center(V_uv,F);
+    viewer.core.align_camera_center(V_uv,F);
   }
 
   viewer.data().compute_normals();
@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
   VectorXi bnd,b(2,1);
   igl::boundary_loop(F,bnd);
   b(0) = bnd(0);
-  b(1) = bnd(bnd.size()/2);
+  b(1) = bnd(round(bnd.size()/2));
   MatrixXd bc(2,2);
   bc<<0,0,1,0;
 

@@ -5,17 +5,17 @@
 #include <igl/copyleft/cgal/point_mesh_squared_distance.h>
 #include <igl/upsample.h>
 
-TEST_CASE("hausdorff: knightVScheburashka", "[igl/copyleft/cgal]")
+TEST(hausdorff, knightVScheburashka) 
 {
   Eigen::MatrixXd VA,VB;
   Eigen::MatrixXi FA,FB;
-  igl::read_triangle_mesh(test_common::data_path("decimated-knight.obj"), VA, FA);
-  igl::read_triangle_mesh(test_common::data_path("cheburashka.off"), VB, FB);
+  test_common::load_mesh("decimated-knight.obj", VA, FA);
+  test_common::load_mesh("cheburashka.off", VB, FB);
   //typedef CGAL::Epeck Kernel;
   typedef CGAL::Simple_cartesian<double> Kernel;
   CGAL::AABB_tree<
-    CGAL::AABB_traits<Kernel,
-      CGAL::AABB_triangle_primitive<Kernel,
+    CGAL::AABB_traits<Kernel, 
+      CGAL::AABB_triangle_primitive<Kernel, 
         typename std::vector<CGAL::Triangle_3<Kernel> >::iterator
       >
     >
@@ -46,9 +46,10 @@ TEST_CASE("hausdorff: knightVScheburashka", "[igl/copyleft/cgal]")
         {
           u4 = std::min(u4,U[j](i-u));
         }
-        REQUIRE (U[j-1](i/4) >= u4);
+        ASSERT_LE(u4,U[j-1](i/4));
       }
     }
     break;
   }
 }
+

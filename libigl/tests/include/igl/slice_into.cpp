@@ -2,7 +2,7 @@
 #include <igl/slice_into.h>
 #include <igl/LinSpaced.h>
 
-TEST_CASE("slice_into: dense_identity", "[igl]")
+TEST(slice_into, dense_identity)
 {
   Eigen::MatrixXd A = Eigen::MatrixXd::Random(10,9);
   Eigen::VectorXi I = igl::LinSpaced<Eigen::VectorXi >(A.rows(),0,A.rows()-1);
@@ -24,7 +24,7 @@ TEST_CASE("slice_into: dense_identity", "[igl]")
   }
 }
 
-TEST_CASE("slice_into: density_reverse", "[igl]")
+TEST(slice_into,density_reverse)
 {
   {
     Eigen::MatrixXd A = Eigen::MatrixXd::Random(10,9);
@@ -49,7 +49,7 @@ TEST_CASE("slice_into: density_reverse", "[igl]")
 }
 
 
-TEST_CASE("slice_into: sparse_identity", "[igl]")
+TEST(slice_into, sparse_identity)
 {
   Eigen::SparseMatrix<double> A = Eigen::MatrixXd::Random(10,9).sparseView();
   Eigen::VectorXi I = igl::LinSpaced<Eigen::VectorXi >(A.rows(),0,A.rows()-1);

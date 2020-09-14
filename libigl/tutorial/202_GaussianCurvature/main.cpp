@@ -3,6 +3,7 @@
 #include <igl/invert_diag.h>
 #include <igl/readOFF.h>
 #include <igl/opengl/glfw/Viewer.h>
+#include <igl/jet.h>
 #include "tutorial_shared_path.h"
 
 int main(int argc, char *argv[])
@@ -23,9 +24,13 @@ int main(int argc, char *argv[])
   // Divide by area to get integral average
   K = (Minv*K).eval();
 
+  // Compute pseudocolor
+  MatrixXd C;
+  igl::jet(K,true,C);
+
   // Plot the mesh with pseudocolors
   igl::opengl::glfw::Viewer viewer;
   viewer.data().set_mesh(V, F);
-  viewer.data().set_data(K);
+  viewer.data().set_colors(C);
   viewer.launch();
 }

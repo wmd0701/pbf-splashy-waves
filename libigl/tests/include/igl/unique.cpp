@@ -2,7 +2,7 @@
 #include <igl/unique_rows.h>
 #include <igl/matrix_to_list.h>
 
-TEST_CASE("unique: matrix", "[igl]")
+TEST(unique,matrix)
 {
   Eigen::VectorXi A(12);
   A = (Eigen::VectorXd::Random(A.size(),1).array().abs()*9).cast<int>();
@@ -12,37 +12,37 @@ TEST_CASE("unique: matrix", "[igl]")
   for(int i = 0;i<A.size();i++)
   {
     inA[A(i)] = true;
-    REQUIRE (C(IC(i)) == A(i));
+    ASSERT_EQ(A(i),C(IC(i)));
   }
   std::vector<bool> inC(inA.size(),false);
   // Expect a column vector
-  REQUIRE (C.cols() == 1);
+  ASSERT_EQ(1,C.cols());
   for(int i = 0;i<C.size();i++)
   {
     // Should be the first time finding this
-    REQUIRE (!inC[C(i)]);
+    ASSERT_FALSE(inC[C(i)]);
     // Mark as found
     inC[C(i)] = true;
     // Should be something also found in A
-    REQUIRE (inA[C(i)]);
-    REQUIRE (A(IA(i)) == C(i));
+    ASSERT_TRUE(inA[C(i)]);
+    ASSERT_EQ(C(i),A(IA(i)));
   }
   for(int i = 0;i<inC.size();i++)
   {
-    REQUIRE (inA[i] == inC[i]);
+    ASSERT_EQ(inC[i],inA[i]);
   }
 }
 
-TEST_CASE("unique_rows: matrix", "[igl]")
+TEST(unique_rows,matrix)
 {
   Eigen::MatrixXi A(50,4);
   A = (Eigen::MatrixXi::Random(A.rows(),A.cols()).array().abs()*9).cast<int>();
   Eigen::MatrixXi C;
   Eigen::VectorXi IA,IC;
   igl::unique_rows(A,C,IA,IC);
-  REQUIRE (C.cols() == A.cols());
-  REQUIRE (IC.size() == A.rows());
-  REQUIRE (IA.size() == C.rows());
+  ASSERT_EQ(A.cols(),C.cols());
+  ASSERT_EQ(A.rows(),IC.size());
+  ASSERT_EQ(C.rows(),IA.size());
   std::map<std::vector<int>,bool> inA;
   for(int i = 0;i<A.rows();i++)
   {
@@ -52,7 +52,7 @@ TEST_CASE("unique_rows: matrix", "[igl]")
     inA[vAi] = true;
     for(int j = 0;j<A.cols();j++)
     {
-      REQUIRE (C(IC(i),j) == A(i,j));
+      ASSERT_EQ(A(i,j),C(IC(i),j));
     }
   }
   std::map<std::vector<int>,bool> inC;
@@ -62,23 +62,23 @@ TEST_CASE("unique_rows: matrix", "[igl]")
     std::vector<int> vCi;
     igl::matrix_to_list(Ci,vCi);
     // Should be the first time finding this
-    REQUIRE (!inC[vCi]);
+    ASSERT_FALSE(inC[vCi]);
     // Mark as found
     inC[vCi] = true;
     // Should be something also found in A
-    REQUIRE (inA[vCi]);
+    ASSERT_TRUE(inA[vCi]);
     for(int j = 0;j<A.cols();j++)
     {
-      REQUIRE (A(IA(i),j) == C(i,j));
+      ASSERT_EQ(C(i,j),A(IA(i),j));
     }
   }
-  REQUIRE (inA.size() == inC.size());
+  ASSERT_EQ(inC.size(),inA.size());
   for(const auto pair : inA)
   {
-    REQUIRE (inA[pair.first] == inC[pair.first]);
+    ASSERT_EQ(inC[pair.first],inA[pair.first]);
   }
   for(const auto pair : inC)
   {
-    REQUIRE (inA[pair.first] == inC[pair.first]);
+    ASSERT_EQ(inC[pair.first],inA[pair.first]);
   }
 }

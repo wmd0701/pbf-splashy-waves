@@ -9,7 +9,7 @@
 #include <igl/unique_edge_map.h>
 #include <igl/is_edge_manifold.h>
 
-namespace {
+namespace mesh_boolean_test {
 
     template<typename DerivedF>
     void assert_no_exterior_edges(
@@ -17,7 +17,7 @@ namespace {
         Eigen::MatrixXi Eb;
         igl::exterior_edges(F, Eb);
 
-        REQUIRE (Eb.rows() == 0);
+        ASSERT_EQ(0, Eb.rows());
     }
 
     template<typename DerivedV, typename DerivedF>
@@ -25,8 +25,8 @@ namespace {
             const Eigen::PlainObjectBase<DerivedV>& V,
             const Eigen::PlainObjectBase<DerivedF>& F) {
         Eigen::MatrixXi B;
-        REQUIRE (igl::is_vertex_manifold(F, B));
-        REQUIRE (igl::is_edge_manifold(F));
+        ASSERT_TRUE(igl::is_vertex_manifold(F, B));
+        ASSERT_TRUE(igl::is_edge_manifold(F));
     }
 
     template<typename DerivedV, typename DerivedF>
@@ -47,15 +47,13 @@ namespace {
 
         const int num_edges = uE.rows();
         const int euler = num_vertices - num_edges + num_faces;
-        REQUIRE (2 - 2 * genus == euler);
+        ASSERT_EQ(euler, 2 - 2 * genus);
     }
 
-}
-
-TEST_CASE("MeshBoolean: TwoCubes", "[igl/copyleft/boolean]") {
+TEST(MeshBoolean, TwoCubes) {
     Eigen::MatrixXd V1;
     Eigen::MatrixXi F1;
-    igl::read_triangle_mesh(test_common::data_path("two-boxes-bad-self-union.ply"), V1, F1);
+    test_common::load_mesh("two-boxes-bad-self-union.ply", V1, F1);
 
     Eigen::MatrixXd V2(0, 3);
     Eigen::MatrixXi F2(0, 3);
@@ -72,12 +70,12 @@ TEST_CASE("MeshBoolean: TwoCubes", "[igl/copyleft/boolean]") {
     assert_genus_eq(Vo, Fo, 0);
 }
 
-TEST_CASE("MeshBoolean: MinusTest", "[igl/copyleft/boolean]") {
+TEST(MeshBoolean, MinusTest) {
     // Many thanks to Eric Yao for submitting this test case.
     Eigen::MatrixXd V1, V2, Vo;
     Eigen::MatrixXi F1, F2, Fo;
-    igl::read_triangle_mesh(test_common::data_path("boolean_minus_test_cube.obj"), V1, F1);
-    igl::read_triangle_mesh(test_common::data_path("boolean_minus_test_green.obj"), V2, F2);
+    test_common::load_mesh("boolean_minus_test_cube.obj", V1, F1);
+    test_common::load_mesh("boolean_minus_test_green.obj", V2, F2);
 
     igl::copyleft::cgal::mesh_boolean(V1, F1, V2, F2,
             igl::MESH_BOOLEAN_TYPE_MINUS,
@@ -88,10 +86,10 @@ TEST_CASE("MeshBoolean: MinusTest", "[igl/copyleft/boolean]") {
     assert_genus_eq(Vo, Fo, 1);
 }
 
-TEST_CASE("MeshBoolean: IntersectWithSelf", "[igl/copyleft/boolean]") {
+TEST(MeshBoolean, IntersectWithSelf) {
     Eigen::MatrixXd V1, Vo;
     Eigen::MatrixXi F1, Fo;
-    igl::read_triangle_mesh(test_common::data_path("cube.obj"), V1, F1);
+    test_common::load_mesh("cube.obj", V1, F1);
 
     igl::copyleft::cgal::mesh_boolean(V1, F1, V1, F1,
             igl::MESH_BOOLEAN_TYPE_INTERSECT,
@@ -100,4 +98,6 @@ TEST_CASE("MeshBoolean: IntersectWithSelf", "[igl/copyleft/boolean]") {
     assert_no_exterior_edges(Fo);
     assert_is_manifold(Vo, Fo);
     assert_genus_eq(Vo, Fo, 0);
+}
+
 }

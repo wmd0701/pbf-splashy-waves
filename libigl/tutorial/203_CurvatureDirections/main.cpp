@@ -46,7 +46,11 @@ int main(int argc, char *argv[])
   igl::opengl::glfw::Viewer viewer;
   viewer.data().set_mesh(V, F);
 
-  viewer.data().set_data(H);
+
+  // Compute pseudocolor
+  MatrixXd C;
+  igl::parula(H,true,C);
+  viewer.data().set_colors(C);
 
   // Average edge length for sizing
   const double avg = igl::avg_edge_length(V,F);

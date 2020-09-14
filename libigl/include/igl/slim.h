@@ -85,8 +85,8 @@ IGL_INLINE void slim_precompute(
   const Eigen::MatrixXd& V_init,
   SLIMData& data,
   MappingEnergyType slim_energy,
-  const Eigen::VectorXi& b,
-  const Eigen::MatrixXd& bc,
+  Eigen::VectorXi& b,
+  Eigen::MatrixXd& bc,
   double soft_p);
 
 // Run iter_num iterations of SLIM

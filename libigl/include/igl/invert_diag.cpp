@@ -7,22 +7,18 @@
 // obtain one at http://mozilla.org/MPL/2.0/.
 #include "invert_diag.h"
 
-template <typename DerivedX, typename MatY>
+template <typename T>
 IGL_INLINE void igl::invert_diag(
-  const Eigen::SparseCompressedBase<DerivedX>& X,
-  MatY& Y)
+  const Eigen::SparseMatrix<T>& X, 
+  Eigen::SparseMatrix<T>& Y)
 {
-  typedef typename DerivedX::Scalar Scalar;
 #ifndef NDEBUG
-  Eigen::SparseMatrix<Scalar> tmp = X;
-  Eigen::SparseVector<Scalar> dX = tmp.diagonal().sparseView();
+  typename Eigen::SparseVector<T> dX = X.diagonal().sparseView();
   // Check that there are no zeros along the diagonal
   assert(dX.nonZeros() == dX.size());
 #endif
   // http://www.alecjacobson.com/weblog/?p=2552
-
-
-  if((void *)&Y != (void *)&X)
+  if(&Y != &X)
   {
     Y = X;
   }
@@ -30,13 +26,13 @@ IGL_INLINE void igl::invert_diag(
   for(int k=0; k<Y.outerSize(); ++k)
   {
     // Iterate over inside
-    for(typename MatY::InnerIterator it (Y,k); it; ++it)
+    for(typename Eigen::SparseMatrix<T>::InnerIterator it (Y,k); it; ++it)
     {
       if(it.col() == it.row())
       {
-        Scalar v = it.value();
+        T v = it.value();
         assert(v != 0);
-        v = ((Scalar)1.0)/v;
+        v = ((T)1.0)/v;
         Y.coeffRef(it.row(),it.col()) = v;
       }
     }
@@ -45,6 +41,6 @@ IGL_INLINE void igl::invert_diag(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::invert_diag<Eigen::SparseMatrix<double, 0, int>, Eigen::SparseMatrix<double, 0, int> >(Eigen::SparseCompressedBase<Eigen::SparseMatrix<double, 0, int>> const&, Eigen::SparseMatrix<double, 0, int>&);
-template void igl::invert_diag<Eigen::SparseMatrix<float, 0, int>, Eigen::SparseMatrix<float, 0, int> >(Eigen::SparseCompressedBase<Eigen::SparseMatrix<float, 0, int>> const&, Eigen::SparseMatrix<float, 0, int>&);
+template void igl::invert_diag<double>(Eigen::SparseMatrix<double, 0, int> const&, Eigen::SparseMatrix<double, 0, int>&);
+template void igl::invert_diag<float>(Eigen::SparseMatrix<float, 0, int> const&, Eigen::SparseMatrix<float, 0, int>&);
 #endif

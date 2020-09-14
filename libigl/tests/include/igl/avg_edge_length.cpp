@@ -3,14 +3,14 @@
 #include <iostream>
 
 
-TEST_CASE("avg_edge_length: cube", "[igl]")
+TEST(avg_edge_length, cube)
 {
   //The allowed error for this test
   const double epsilon = 1e-15;
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.obj"), V, F);
+  test_common::load_mesh("cube.obj", V, F);
   //Create scaled versions of the cube
   double scale = 1.0;
   double huge_scale = 1.0e8;
@@ -31,32 +31,32 @@ TEST_CASE("avg_edge_length: cube", "[igl]")
   double avg;
 
   avg = igl::avg_edge_length(V,F);
-  REQUIRE (avg == Approx ((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.)).margin( epsilon));
+  ASSERT_NEAR((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.), avg, epsilon);
 
   //Check the regular tetrahedron
   avg = igl::avg_edge_length(V,F_tet);
-  REQUIRE (avg == Approx (sqrt(diag_sq)).margin( epsilon));
+  ASSERT_NEAR(sqrt(diag_sq), avg, epsilon);
 
 
   //Scale the cube to have huge sides
   side_sq = huge_scale * huge_scale;  //squared lenght of a side
   diag_sq = 2.0 * side_sq;  //squared lenght of a diagonal
   avg = igl::avg_edge_length(V_huge,F);
-  REQUIRE (avg == Approx ((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.)).margin( epsilon*huge_scale));
+  ASSERT_NEAR((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.), avg, epsilon*huge_scale);
 
   //Check the equilateral triangles
   avg = igl::avg_edge_length(V_huge,F_tet);
-  REQUIRE (avg == Approx (sqrt(diag_sq)).margin( epsilon*huge_scale));
+  ASSERT_NEAR(sqrt(diag_sq), avg, epsilon*huge_scale);
 
 
   //Scale the cube to have tiny sides
   side_sq = tiny_scale * tiny_scale;  //squared lenght of a side
   diag_sq = 2.0 * side_sq;  //squared lenght of a diagonal
   avg = igl::avg_edge_length(V_tiny,F);
-  REQUIRE (avg == Approx ((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.)).margin( epsilon*tiny_scale));
+  ASSERT_NEAR((12.*sqrt(side_sq) + 6.*sqrt(diag_sq))/(12.+6.), avg, epsilon*tiny_scale);
 
   //Check the regular tetrahedron
   avg = igl::avg_edge_length(V_tiny,F_tet);
-  REQUIRE (avg == Approx (sqrt(diag_sq)).margin( epsilon*tiny_scale));
+  ASSERT_NEAR(sqrt(diag_sq), avg, epsilon*tiny_scale);
 
 }

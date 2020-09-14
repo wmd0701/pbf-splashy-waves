@@ -6,11 +6,10 @@
 
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
-TEST_CASE("RemeshSelfIntersections: CubeWithFold", "[igl/copyleft/cgal]")
-{
+TEST(RemeshSelfIntersections, CubeWithFold) {
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
-    igl::read_triangle_mesh(test_common::data_path("cube_with_fold.ply"), V, F);
+    test_common::load_mesh("cube_with_fold.ply", V, F);
 
     typedef CGAL::Exact_predicates_exact_constructions_kernel K;
     typedef Eigen::Matrix<K::FT, Eigen::Dynamic, Eigen::Dynamic> MatrixXe;

@@ -1,15 +1,5 @@
 # Physically-based Simulation in Computer Graphics HS2020 - Course Exercises
 
-<!-- ## Note for setup
-
-To add libigl:
-
-```
-git submodule add https://github.com/libigl/libigl/
-cd libigl
-git checkout ed363da1
-``` -->
-
 <!-- ## Exercise Overview
 
 [Exercise 1: Time Integration](ex1.pdf)
@@ -58,7 +48,7 @@ Before you are able to clone your private exercise repository, you need to have 
 
 In the next step you need to clone it to your local hard drive:
 ```
-git clone --recurse-submodules https://gitlab.ethz.ch/'Your_Git_Username'/pbs20.git
+git clone https://gitlab.ethz.ch/'Your_Git_Username'/pbs20.git
 ```
 'Your_Git_Username' needs to be replaced accordingly. This can take a moment.
 

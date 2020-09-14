@@ -10,13 +10,13 @@
 #include "cotmatrix_entries.h"
 #include <Eigen/Dense>
 
-template <typename MatV, typename MatF, typename MatK>
+template <typename MatV, typename MatF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block(
   const MatV & V,
   const MatF & F,
   const int d,
   const igl::ARAPEnergyType energy,
-  MatK & Kd)
+  Eigen::SparseMatrix<Scalar> & Kd)
 {
   switch(energy)
   {
@@ -36,15 +36,13 @@ IGL_INLINE void igl::arap_linear_block(
 }
 
 
-template <typename MatV, typename MatF, typename MatK>
+template <typename MatV, typename MatF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_spokes(
   const MatV & V,
   const MatF & F,
   const int d,
-  MatK & Kd)
+  Eigen::SparseMatrix<Scalar> & Kd)
 {
-  typedef typename MatK::Scalar Scalar;
-
   using namespace std;
   using namespace Eigen;
   // simplex size (3: triangles, 4: tetrahedra)
@@ -103,15 +101,13 @@ IGL_INLINE void igl::arap_linear_block_spokes(
   Kd.makeCompressed();
 }
 
-template <typename MatV, typename MatF, typename MatK>
+template <typename MatV, typename MatF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_spokes_and_rims(
   const MatV & V,
   const MatF & F,
   const int d,
-  MatK & Kd)
+  Eigen::SparseMatrix<Scalar> & Kd)
 {
-  typedef typename MatK::Scalar Scalar;
-
   using namespace std;
   using namespace Eigen;
   // simplex size (3: triangles, 4: tetrahedra)
@@ -187,14 +183,13 @@ IGL_INLINE void igl::arap_linear_block_spokes_and_rims(
   Kd.makeCompressed();
 }
 
-template <typename MatV, typename MatF, typename MatK>
+template <typename MatV, typename MatF, typename Scalar>
 IGL_INLINE void igl::arap_linear_block_elements(
   const MatV & V,
   const MatF & F,
   const int d,
-  MatK & Kd)
+  Eigen::SparseMatrix<Scalar> & Kd)
 {
-  typedef typename MatK::Scalar Scalar;
   using namespace std;
   using namespace Eigen;
   // simplex size (3: triangles, 4: tetrahedra)
@@ -254,6 +249,5 @@ IGL_INLINE void igl::arap_linear_block_elements(
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::arap_linear_block<Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> >, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> >, Eigen::SparseMatrix<double, 0, int> >(Eigen::MatrixBase<Eigen::Matrix<double, -1, -1, 0, -1, -1> > const&, Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, int, igl::ARAPEnergyType, Eigen::SparseMatrix<double, 0, int>&);
-template void igl::arap_linear_block<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::SparseMatrix<double, 0, int> >(Eigen::Matrix<double, -1, -1, 0, -1, -1> const&, Eigen::Matrix<int, -1, -1, 0, -1, -1> const&, int, igl::ARAPEnergyType, Eigen::SparseMatrix<double, 0, int>&);
+template IGL_INLINE void igl::arap_linear_block<Eigen::Matrix<double, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, -1, 0, -1, -1>, double>(Eigen::Matrix<double, -1, -1, 0, -1, -1> const&, Eigen::Matrix<int, -1, -1, 0, -1, -1> const&, int, igl::ARAPEnergyType, Eigen::SparseMatrix<double, 0, int>&);
 #endif

@@ -20,7 +20,7 @@ namespace igl
   //   V  #V by dim list of vertex positions
   //   T  #V by 4 list of tet indices
   // Outputs:
-  //   vol  #T list of tetrahedron volumes
+  //   vol  #T list of dihedral angles (in radians)
   //
   template <
     typename DerivedV, 

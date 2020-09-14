@@ -25,8 +25,7 @@ IGL_INLINE void igl::hsv_to_rgb(
   // From medit
   double f,p,q,t,hh;
   int    i;
-  // shift the hue to the range [0, 360] before performing calculations
-  hh = ((360 + ((int)h % 360)) % 360) / 60.;
+  hh = ((int)h % 360) / 60.;
   i = (int)std::floor(hh);    /* largest int <= h     */
   f = hh - i;                    /* fractional part of h */
   p = v * (1.0 - s);

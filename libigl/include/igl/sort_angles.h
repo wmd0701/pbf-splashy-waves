@@ -24,7 +24,7 @@ namespace igl {
     //      angle.
     template<typename DerivedM, typename DerivedR>
     IGL_INLINE void sort_angles(
-            const Eigen::MatrixBase<DerivedM>& M,
+            const Eigen::PlainObjectBase<DerivedM>& M,
             Eigen::PlainObjectBase<DerivedR>& R);
 }
 

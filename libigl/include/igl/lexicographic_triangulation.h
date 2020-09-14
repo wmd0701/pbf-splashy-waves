@@ -33,7 +33,7 @@ namespace igl
     typename DerivedF
     >
   IGL_INLINE void lexicographic_triangulation(
-      const Eigen::MatrixBase<DerivedP>& P,
+      const Eigen::PlainObjectBase<DerivedP>& P,
       Orient2D orient2D,
       Eigen::PlainObjectBase<DerivedF>& F);
 }

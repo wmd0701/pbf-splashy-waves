@@ -18,7 +18,7 @@ namespace igl
   struct active_set_params;
   // Known Bugs: rows of [Aeq;Aieq] **must** be linearly independent. Should be
   // using QR decomposition otherwise:
-  // https://v8doc.sas.com/sashtml/ormp/chap5/sect32.htm
+  //   http://www.okstate.edu/sas/v8/sashtml/ormp/chap5/sect32.htm
   //
   // ACTIVE_SET Minimize quadratic energy 
   //

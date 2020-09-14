@@ -22,7 +22,7 @@ namespace igl
   //
   template <typename DerivedE, typename DerivedP>
   IGL_INLINE void directed_edge_parents(
-    const Eigen::MatrixBase<DerivedE> & E,
+    const Eigen::PlainObjectBase<DerivedE> & E,
     Eigen::PlainObjectBase<DerivedP> & P);
 }
 

@@ -43,32 +43,32 @@ namespace igl
   //   Kd  #V by #V/#F block of the linear constructor matrix corresponding to
   //     coordinate d
   //
-  template <typename MatV, typename MatF, typename MatK>
+  template <typename MatV, typename MatF, typename Scalar>
   IGL_INLINE void arap_linear_block(
     const MatV & V,
     const MatF & F,
     const int d,
     const igl::ARAPEnergyType energy,
-    MatK & Kd);
+    Eigen::SparseMatrix<Scalar> & Kd);
   // Helper functions for each energy type
-  template <typename MatV, typename MatF, typename MatK>
+  template <typename MatV, typename MatF, typename Scalar>
   IGL_INLINE void arap_linear_block_spokes(
     const MatV & V,
     const MatF & F,
     const int d,
-    MatK & Kd);
-  template <typename MatV, typename MatF, typename MatK>
+    Eigen::SparseMatrix<Scalar> & Kd);
+  template <typename MatV, typename MatF, typename Scalar>
   IGL_INLINE void arap_linear_block_spokes_and_rims(
     const MatV & V,
     const MatF & F,
     const int d,
-    MatK & Kd);
-  template <typename MatV, typename MatF, typename MatK>
+    Eigen::SparseMatrix<Scalar> & Kd);
+  template <typename MatV, typename MatF, typename Scalar>
   IGL_INLINE void arap_linear_block_elements(
     const MatV & V,
     const MatF & F,
     const int d,
-    MatK & Kd);
+    Eigen::SparseMatrix<Scalar> & Kd);
 }
 
 #ifndef IGL_STATIC_LIBRARY

@@ -1,10 +1,7 @@
 #include <test_common.h>
-#include <igl/PI.h>
 #include <igl/cotmatrix_entries.h>
-#include <igl/edge_lengths.h>
-#include <igl/EPS.h>
 
-TEST_CASE("cotmatrix_entries: simple", "[igl]")
+TEST(cotmatrix_entries, simple)
 {
   //The allowed error for this test
   const double epsilon = 1e-15;
@@ -12,7 +9,7 @@ TEST_CASE("cotmatrix_entries: simple", "[igl]")
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.obj"), V, F);
+  test_common::load_mesh("cube.obj", V, F);
 
   //Prepare another mesh with triangles along side diagonals of the cube
   //These triangles are form a regular tetrahedron of side sqrt(2)
@@ -26,129 +23,114 @@ TEST_CASE("cotmatrix_entries: simple", "[igl]")
 
   Eigen::MatrixXd C1;
   igl::cotmatrix_entries(V,F,C1);
-  REQUIRE (C1.rows() == F.rows());
-  REQUIRE (C1.cols() == 3);
+  ASSERT_EQ(F.rows(), C1.rows());
+  ASSERT_EQ(3, C1.cols());
   //All angles in unit cube measure 45 or 90 degrees
   //Their (half)cotangent must value 0.5 or 0.0
   for(int f = 0;f<C1.rows();f++)
   {
 #ifdef IGL_EDGE_LENGTHS_SQUARED_H
-      //Hard assert if we have edge_length_squared
+      //Hard assert if we have edge_lenght_squared
       for(int v = 0;v<3;v++)
         if (C1(f,v) > 0.1)
-            REQUIRE (C1(f,v) == 0.5);
+            ASSERT_EQ(0.5, C1(f,v));
         else
-           REQUIRE (C1(f,v) == 0.0);
+           ASSERT_EQ(0.0, C1(f,v));
        //All cotangents sum 1.0 for those triangles
-       REQUIRE (C1.row(f).sum() == 1.0);
+       ASSERT_EQ(1.0, C1.row(f).sum());
 #else
-      //Soft assert if we have not edge_length_squared
+      //Soft assert if we have not edge_lenght_squared
       for(int v = 0;v<3;v++)
         if (C1(f,v) > 0.1)
-            REQUIRE (C1(f,v) == Approx (0.5).margin( epsilon));
+            ASSERT_NEAR(0.5, C1(f,v), epsilon);
         else
-            REQUIRE (C1(f,v) == Approx (0.0).margin( epsilon));
+            ASSERT_NEAR(0.0, C1(f,v), epsilon);
        //All cotangents sum 1.0 for those triangles
-       REQUIRE (C1.row(f).sum() == Approx (1.0).margin( epsilon));
+       ASSERT_NEAR(1.0, C1.row(f).sum(), epsilon);
 #endif
   }
 
   //Check the regular tetrahedron
   Eigen::MatrixXd C2;
   igl::cotmatrix_entries(V,F_tet,C2);
-  REQUIRE (C2.rows() == F_tet.rows());
-  REQUIRE (C2.cols() == 3);
+  ASSERT_EQ(F_tet.rows(), C2.rows());
+  ASSERT_EQ(3, C2.cols());
   for(int f = 0;f<C2.rows();f++)
   {
-    //Their (half)cotangent must value 0.5 / tan(igl::PI / 3.0)
+    //Their (half)cotangent must value 0.5 / tan(M_PI / 3.0)
     for(int v = 0;v<3;v++)
-       REQUIRE (C2(f,v) == Approx (0.5 / tan(igl::PI / 3.0)).margin( epsilon));
+       ASSERT_NEAR(0.5 / tan(M_PI / 3.0), C2(f,v), epsilon);
   }
 
   //Scale the cube to have huge sides
   Eigen::MatrixXd V_huge = V * 1.0e8;
   igl::cotmatrix_entries(V_huge,F,C1);
-  REQUIRE (C1.rows() == F.rows());
-  REQUIRE (C1.cols() == 3);
+  ASSERT_EQ(F.rows(), C1.rows());
+  ASSERT_EQ(3, C1.cols());
   //All angles still measure 45 or 90 degrees
   //Their (half)cotangent must value 0.5 or 0.0
   for(int f = 0;f<C1.rows();f++)
-  {
+  {    
 #ifdef IGL_EDGE_LENGTHS_SQUARED_H
-      //Hard assert if we have edge_length_squared
+      //Hard assert if we have edge_lenght_squared
       for(int v = 0;v<3;v++)
         if (C1(f,v) > 0.1)
-            REQUIRE (C1(f,v) == 0.5);
+            ASSERT_EQ(0.5, C1(f,v));
         else
-           REQUIRE (C1(f,v) == 0.0);
+           ASSERT_EQ(0.0, C1(f,v));
        //All cotangents sum 1.0 for those triangles
-       REQUIRE (C1.row(f).sum() == 1.0);
+       ASSERT_EQ(1.0, C1.row(f).sum());
 #else
-      //Soft assert if we have not edge_length_squared
+      //Soft assert if we have not edge_lenght_squared
       for(int v = 0;v<3;v++)
         if (C1(f,v) > 0.1)
-            REQUIRE (C1(f,v) == Approx (0.5).margin( epsilon));
+            ASSERT_NEAR(0.5, C1(f,v), epsilon);
         else
-            REQUIRE (C1(f,v) == Approx (0.0).margin( epsilon));
+            ASSERT_NEAR(0.0, C1(f,v), epsilon);
        //All cotangents sum 1.0 for those triangles
-       REQUIRE (C1.row(f).sum() == Approx (1.0).margin( epsilon));
+       ASSERT_NEAR(1.0, C1.row(f).sum(), epsilon);
 #endif
 
   }
 
   //Check the huge regular tetrahedron
   igl::cotmatrix_entries(V_huge,F_tet,C2);
-  REQUIRE (C2.rows() == F_tet.rows());
-  REQUIRE (C2.cols() == 3);
+  ASSERT_EQ(F_tet.rows(), C2.rows());
+  ASSERT_EQ(3, C2.cols());
   for(int f = 0;f<C2.rows();f++)
   {
-    //Their (half)cotangent must value 0.5 / tan(igl::PI / 3.0)
+    //Their (half)cotangent must value 0.5 / tan(M_PI / 3.0)
     for(int v = 0;v<3;v++)
-       REQUIRE (C2(f,v) == Approx (0.5 / tan(igl::PI / 3.0)).margin( epsilon));
+       ASSERT_NEAR(0.5 / tan(M_PI / 3.0), C2(f,v), epsilon);
   }
 
   //Scale the cube to have tiny sides
   Eigen::MatrixXd V_tiny = V * 1.0e-8;
   igl::cotmatrix_entries(V_tiny,F,C1);
-  REQUIRE (C1.rows() == F.rows());
-  REQUIRE (C1.cols() == 3);
+  ASSERT_EQ(F.rows(), C1.rows());
+  ASSERT_EQ(3, C1.cols());
   //All angles still measure 45 or 90 degrees
   //Their (half)cotangent must value 0.5 or 0.0
   for(int f = 0;f<C1.rows();f++)
   {
     for(int v = 0;v<3;v++)
         if (C1(f,v) > 0.1)
-           REQUIRE (C1(f,v) == Approx (0.5).margin( epsilon));
+           ASSERT_NEAR(0.5, C1(f,v), epsilon);
         else
-           REQUIRE (C1(f,v) == Approx (0.0).margin( epsilon));
+           ASSERT_NEAR(0.0, C1(f,v), epsilon);
     //All cotangents sum 1.0 for those triangles
-    REQUIRE (C1.row(f).sum() == Approx (1.0).margin( epsilon));
+    ASSERT_NEAR(1.0, C1.row(f).sum(), epsilon);
   }
 
   //Check the tiny regular tetrahedron
   igl::cotmatrix_entries(V_tiny,F_tet,C2);
-  REQUIRE (C2.rows() == F_tet.rows());
-  REQUIRE (C2.cols() == 3);
+  ASSERT_EQ(F_tet.rows(), C2.rows());
+  ASSERT_EQ(3, C2.cols());
   for(int f = 0;f<C2.rows();f++)
   {
-    //Their (half)cotangent must value 0.5 / tan(igl::PI / 3.0)
+    //Their (half)cotangent must value 0.5 / tan(M_PI / 3.0)
     for(int v = 0;v<3;v++)
-       REQUIRE (C2(f,v) == Approx (0.5 / tan(igl::PI / 3.0)).margin( epsilon));
+       ASSERT_NEAR(0.5 / tan(M_PI / 3.0), C2(f,v), epsilon);
   }
-}// TEST_CASE("cotmatrix_entries: simple", "[igl]")
 
-TEST_CASE("cotmatrix_entries: intrinsic", "[igl]")
-{
-  Eigen::MatrixXd V;
-  Eigen::MatrixXi F;
-  //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.obj"), V, F);
-  Eigen::MatrixXd Cext,Cint;
-  // compute C extrinsically
-  igl::cotmatrix_entries(V,F,Cext);
-  // compute C intrinsically
-  Eigen::MatrixXd l;
-  igl::edge_lengths(V,F,l);
-  igl::cotmatrix_entries(l,Cint);
-  test_common::assert_near(Cext,Cint,igl::EPS<double>());
-}
+}//TEST(cotmatrix_entries, simple)

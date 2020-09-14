@@ -1,31 +1,35 @@
 #include <test_common.h>
-#include <igl/PI.h>
 #include <igl/cotmatrix.h>
 
-TEST_CASE("cotmatrix: constant_in_null_space", "[igl]" "[slow]")
-{
-  const auto test_case = [](const std::string &param)
-  {
-    Eigen::MatrixXd V;
-    Eigen::MatrixXi F;
-    Eigen::SparseMatrix<double> L;
-    // Load example mesh: GetParam() will be name of mesh file
-    igl::read_triangle_mesh(test_common::data_path(param), V, F);
-    igl::cotmatrix(V,F,L);
-    REQUIRE (L.rows() == V.rows());
-    REQUIRE (L.cols() == L.rows());
-    Eigen::VectorXd C = Eigen::VectorXd::Ones(L.rows());
-    Eigen::VectorXd Z = Eigen::VectorXd::Zero(L.rows());
-    // REQUIRE (b == a);
-    // REQUIRE (a==b);
-    // ASSERT_NEAR(a,b,1e-15)
-    REQUIRE (1e-12 > ((L*C)-(Z)).norm());
-  };
+class cotmatrix : public ::testing::TestWithParam<std::string> {};
 
-  test_common::run_test_cases(test_common::all_meshes(), test_case);
+TEST_P(cotmatrix, constant_in_null_space)
+{
+  Eigen::MatrixXd V;
+  Eigen::MatrixXi F;
+  Eigen::SparseMatrix<double> L;
+  // Load example mesh: GetParam() will be name of mesh file
+  test_common::load_mesh(GetParam(), V, F);
+  igl::cotmatrix(V,F,L);
+  ASSERT_EQ(V.rows(),L.rows());
+  ASSERT_EQ(L.rows(),L.cols());
+  Eigen::VectorXd C = Eigen::VectorXd::Ones(L.rows());
+  Eigen::VectorXd Z = Eigen::VectorXd::Zero(L.rows());
+  // ASSERT_EQ(a,b);
+  // ASSERT_TRUE(a==b);
+  // ASSERT_NEAR(a,b,1e-15)
+  ASSERT_LT(((L*C)-(Z)).norm(),1e-12);
 }
 
-TEST_CASE("cotmatrix: cube", "[igl]")
+INSTANTIATE_TEST_CASE_P
+(
+ all_meshes,
+ cotmatrix,
+ ::testing::ValuesIn(test_common::all_meshes()),
+ test_common::string_test_name
+);
+
+TEST(cotmatrix, cube)
 {
   //The allowed error for this test
   const double epsilon = 1e-15;
@@ -33,7 +37,7 @@ TEST_CASE("cotmatrix: cube", "[igl]")
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.obj"), V, F);
+  test_common::load_mesh("cube.obj", V, F);
 
   //Scale the cube to have huge sides
   Eigen::MatrixXd V_huge = V * 1.0e8;
@@ -48,60 +52,49 @@ TEST_CASE("cotmatrix: cube", "[igl]")
   //So the cotangent matrix always are (0+0) or (0.5+0.5)
   Eigen::SparseMatrix<double> L1;
   igl::cotmatrix(V,F,L1);
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
-//// This is hitting an Eigen bug.  https://github.com/libigl/libigl/pull/1064
-//  for(int f = 0;f<L1.rows();f++)
-//  {
-//#ifdef IGL_EDGE_LENGTHS_SQUARED_H
-//    //Hard assert if we have edge_lenght_squared
-//    REQUIRE (L1.coeff(f,f) == -3.0);
-//    REQUIRE (L1.row(f).sum() == 0.0);
-//    REQUIRE (L1.col(f).sum() == 0.0);
-//#else
-//    //Soft assert if we have not edge_lenght_squared
-//    REQUIRE (L1.coeff(f,f) == Approx (-3.0).margin( epsilon));
-//    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-//    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
-//#endif
-//  }
-  Eigen::VectorXd row_sum = L1 * Eigen::VectorXd::Constant(L1.rows(),1,1);
-  Eigen::RowVectorXd col_sum = Eigen::RowVectorXd::Constant(1,L1.rows(),1) * L1;
-  Eigen::VectorXd diag = L1.diagonal();
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
+  for(int f = 0;f<L1.rows();f++)
+  {
 #ifdef IGL_EDGE_LENGTHS_SQUARED_H
-  test_common::assert_eq( row_sum, Eigen::VectorXd::Zero(L1.rows()) );
-  test_common::assert_eq( col_sum, Eigen::RowVectorXd::Zero(L1.rows()) );
-  test_common::assert_eq(    diag, Eigen::VectorXd::Constant(L1.rows(),1,-3) );
+    //Hard assert if we have edge_lenght_squared
+    ASSERT_EQ(-3.0, L1.coeff(f,f));
+    ASSERT_EQ(0.0, L1.row(f).sum());
+    ASSERT_EQ(0.0, L1.col(f).sum());
 #else
-  test_common::assert_near( row_sum, Eigen::VectorXd::Zero(L1.rows()) , epsilon);
-  test_common::assert_near( col_sum, Eigen::RowVectorXd::Zero(L1.rows()) , epsilon);
-  test_common::assert_near(    diag, Eigen::VectorXd::Constant(L1.rows(),1,-3) , epsilon);
+    //Soft assert if we have not edge_lenght_squared
+    ASSERT_NEAR(-3.0, L1.coeff(f,f), epsilon);
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
 #endif
+
+  }
 
   //Same for huge cube.
   igl::cotmatrix(V_huge,F,L1);
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
   for(int f = 0;f<L1.rows();f++)
   {
-    REQUIRE (L1.coeff(f,f) == Approx (-3.0).margin( epsilon));
-    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
+    ASSERT_NEAR(-3.0, L1.coeff(f,f), epsilon);
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
   }
 
   //Same for tiny cube. we need to use a tolerance this time...
   igl::cotmatrix(V_tiny,F,L1);
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
   for(int f = 0;f<L1.rows();f++)
   {
-    REQUIRE (L1.coeff(f,f) == Approx (-3.0).margin( epsilon));
-    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
+    ASSERT_NEAR(-3.0, L1.coeff(f,f), epsilon);
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
   }
-}
 
-TEST_CASE("cotmatrix: tetrahedron", "[igl]")
+}//TEST(cotmatrix, cube)
+
+TEST(cotmatrix, tetrahedron)
 {
   //The allowed error for this test
   const double epsilon = 1e-15;
@@ -109,7 +102,7 @@ TEST_CASE("cotmatrix: tetrahedron", "[igl]")
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.obj"), V, F);
+  test_common::load_mesh("cube.obj", V, F);
 
   //Prepare another mesh with triangles along side diagonals of the cube
   //These triangles are form a regular tetrahedron of side sqrt(2)
@@ -135,55 +128,56 @@ TEST_CASE("cotmatrix: tetrahedron", "[igl]")
   //Check the regular tetrahedron of side sqrt(2)
   igl::cotmatrix(V,F_equi,L1);
 
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
   for(int f = 0;f<L1.rows();f++)
   {
     //Check the diagonal. Only can value 0.0 for unused vertex or -3 / tan(60)
     if (L1.coeff(f,f) < -0.1)
-        REQUIRE (L1.coeff(f,f) == Approx (-3 / tan(igl::PI / 3.0)).margin( epsilon));
+        ASSERT_NEAR(-3 / tan(M_PI / 3.0), L1.coeff(f,f), epsilon);
     else
-        REQUIRE (L1.coeff(f,f) == Approx (0.0).margin( epsilon));
+        ASSERT_NEAR(0.0, L1.coeff(f,f), epsilon);
 #ifdef IGL_EDGE_LENGTHS_SQUARED_H
     //Hard assert if we have edge_lenght_squared
-    REQUIRE (L1.row(f).sum() == 0.0);
-    REQUIRE (L1.col(f).sum() == 0.0);
+    ASSERT_EQ(0.0, L1.row(f).sum());
+    ASSERT_EQ(0.0, L1.col(f).sum());
 #else
     //Soft assert if we have not edge_lenght_squared
-    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
 #endif
   }
 
   //Check the huge regular tetrahedron
   igl::cotmatrix(V_huge,F_equi,L1);
 
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
   for(int f = 0;f<L1.rows();f++)
   {
     //Check the diagonal. Only can value 0.0 for unused vertex or -3 / tan(60)
     if (L1.coeff(f,f) < -0.1)
-        REQUIRE (L1.coeff(f,f) == Approx (-3 / tan(igl::PI / 3.0)).margin( epsilon));
+        ASSERT_NEAR(-3 / tan(M_PI / 3.0), L1.coeff(f,f), epsilon);
     else
-        REQUIRE (L1.coeff(f,f) == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
+        ASSERT_NEAR(0.0, L1.coeff(f,f), epsilon);
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
   }
 
   //Check the tiny regular tetrahedron
   igl::cotmatrix(V_tiny,F_equi,L1);
 
-  REQUIRE (L1.rows() == V.rows());
-  REQUIRE (L1.cols() == V.rows());
+  ASSERT_EQ(V.rows(), L1.rows());
+  ASSERT_EQ(V.rows(), L1.cols());
   for(int f = 0;f<L1.rows();f++)
   {
     //Check the diagonal. Only can value 0.0 for unused vertex or -3 / tan(60)
     if (L1.coeff(f,f) < -0.1)
-        REQUIRE (L1.coeff(f,f) == Approx (-3 / tan(igl::PI / 3.0)).margin( epsilon));
+        ASSERT_NEAR(-3 / tan(M_PI / 3.0), L1.coeff(f,f), epsilon);
     else
-        REQUIRE (L1.coeff(f,f) == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.row(f).sum() == Approx (0.0).margin( epsilon));
-    REQUIRE (L1.col(f).sum() == Approx (0.0).margin( epsilon));
+        ASSERT_NEAR(0.0, L1.coeff(f,f), epsilon);
+    ASSERT_NEAR(0.0, L1.row(f).sum(), epsilon);
+    ASSERT_NEAR(0.0, L1.col(f).sum(), epsilon);
   }
-}
+
+}//TEST(cotmatrix, tetrahedron)

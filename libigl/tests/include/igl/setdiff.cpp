@@ -1,7 +1,7 @@
 #include <test_common.h>
 #include <igl/setdiff.h>
 
-TEST_CASE("setdiff: matrix", "[igl]")
+TEST(setdiff,matrix)
 {
   // Base cases
   {
@@ -35,10 +35,10 @@ TEST_CASE("setdiff: matrix", "[igl]")
     igl::setdiff(A,B,C,IA);
     for(int i = 0;i<C.size();i++)
     {
-      REQUIRE (A(IA(i)) == C(i));
+      ASSERT_EQ(C(i),A(IA(i)));
       for(int j = 0;j<B.size();j++)
       {
-        REQUIRE (C(i) != B(j));
+        ASSERT_NE(B(j),C(i));
       }
     }
   }

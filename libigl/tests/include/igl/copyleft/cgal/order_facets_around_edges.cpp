@@ -10,7 +10,7 @@
 #include <igl/readDMAT.h>
 #include <igl/per_face_normals.h>
 
-namespace {
+namespace order_facets_around_edges_test {
 
 typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 
@@ -25,7 +25,7 @@ void assert_consistently_oriented(size_t num_faces,
         const std::vector<int>& expected_face_order,
         const std::vector<int>& e_order) {
     const size_t num_items = expected_face_order.size();
-    REQUIRE (e_order.size() == num_items);
+    ASSERT_EQ(num_items, e_order.size());
 
     std::vector<int> order(num_items);
     std::transform(e_order.begin(), e_order.end(), order.begin(),
@@ -33,7 +33,7 @@ void assert_consistently_oriented(size_t num_faces,
 
     size_t ref_start = index_of(order, expected_face_order[0]);
     for (size_t i=0; i<num_items; i++) {
-        REQUIRE (order[(ref_start + i) % num_items] == expected_face_order[i]);
+        ASSERT_EQ(expected_face_order[i], order[(ref_start + i) % num_items]);
     }
 }
 
@@ -54,7 +54,7 @@ void assert_order(
         Eigen::MatrixXd N;
         //igl::per_face_normals_stable(V, F, N);
         //igl::per_face_normals(V, F, N);
-        igl::readDMAT(test_common::data_path(normal), N);
+        test_common::load_matrix(normal, N);
         igl::copyleft::cgal::order_facets_around_edges(
           V, F, N, uE, uE2E, uE2oE, uE2C);
     } else {
@@ -62,17 +62,11 @@ void assert_order(
           V, F, uE, uE2E, uE2oE, uE2C);
     }
 
-    const size_t num_faces = F.rows();
     const size_t num_uE = uE.rows();
     for (size_t i=0; i<num_uE; i++) {
         const auto& order = uE2oE[i];
         const auto& cons  = uE2C[i];
-        const auto ref_edge = uE2E[i][0];
-        const auto ref_face = ref_edge % num_faces;
-        const auto ref_corner = ref_edge / num_faces;
-        const Eigen::Vector2i e{
-            F(ref_face, (ref_corner+1)%3),
-            F(ref_face, (ref_corner+2)%3) };
+        Eigen::VectorXi e = uE.row(i);
         if (order.size() <= 1) continue;
         if (e[0] != v0 && e[0] != v1) continue;
         if (e[1] != v0 && e[1] != v1) continue;
@@ -83,10 +77,7 @@ void assert_order(
     }
 }
 
-} // anonymous namespace
-
-TEST_CASE("copyleft_cgal_order_facets_around_edges: Simple", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, Simple) {
     Eigen::MatrixXd V(4, 3);
     V << 0.0, 0.0, 0.0,
          1.0, 0.0, 0.0,
@@ -99,8 +90,7 @@ TEST_CASE("copyleft_cgal_order_facets_around_edges: Simple", "[igl/copyleft/cgal
     assert_order(V, F, 1, 2, {0, 1});
 }
 
-TEST_CASE("copyleft_cgal_order_facets_around_edges: TripletFaces", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, TripletFaces) {
     Eigen::MatrixXd V(5, 3);
     V << 0.0, 0.0, 0.0,
          1.0, 0.0, 0.0,
@@ -115,8 +105,7 @@ TEST_CASE("copyleft_cgal_order_facets_around_edges: TripletFaces", "[igl/copylef
     assert_order(V, F, 1, 2, {0, 1, 2});
 }
 
-TEST_CASE("copyleft_cgal_order_facets_around_edges: DuplicatedFaces", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, DuplicatedFaces) {
     Eigen::MatrixXd V(5, 3);
     V << 0.0, 0.0, 0.0,
          1.0, 0.0, 0.0,
@@ -132,27 +121,25 @@ TEST_CASE("copyleft_cgal_order_facets_around_edges: DuplicatedFaces", "[igl/copy
     assert_order(V, F, 1, 2, {0, 1, 3, 2});
 }
 
-TEST_CASE("copyleft_cgal_order_facets_around_edges: MultipleDuplicatedFaces", "[igl/copyleft/cgal]")
-{
-    Eigen::MatrixXd V(5, 3);
-    V << 0.0, 0.0, 0.0,
-         1.0, 0.0, 0.0,
-         0.0, 1.0, 0.0,
-         1.0, 1.0, 0.0,
-         0.0, 0.0, 1.0;
-    Eigen::MatrixXi F(6, 3);
-    F << 0, 1, 2,
-         1, 2, 0,
-         2, 1, 3,
-         1, 3, 2,
-         1, 2, 4,
-         4, 1, 2;
+//TEST(copyleft_cgal_order_facets_around_edges, MultipleDuplicatedFaces) {
+//    Eigen::MatrixXd V(5, 3);
+//    V << 0.0, 0.0, 0.0,
+//         1.0, 0.0, 0.0,
+//         0.0, 1.0, 0.0,
+//         1.0, 1.0, 0.0,
+//         0.0, 0.0, 1.0;
+//    Eigen::MatrixXi F(6, 3);
+//    F << 0, 1, 2,
+//         1, 2, 0,
+//         2, 1, 3,
+//         1, 3, 2,
+//         1, 2, 4,
+//         4, 1, 2;
+//
+//    assert_order(V, F, 1, 2, {1, 0, 2, 3, 5, 4});
+//}
 
-    assert_order(V, F, 1, 2, {1, 0, 2, 3, 5, 4});
-}
-
-TEST_CASE("copyleft_cgal_order_facets_around_edges: Debug", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, Debug) {
     Eigen::MatrixXd V(5, 3);
     V <<
         -44.3205080756887781, 4.22994972382184579e-15, 75,
@@ -169,8 +156,7 @@ TEST_CASE("copyleft_cgal_order_facets_around_edges: Debug", "[igl/copyleft/cgal]
     assert_order(V, F, 1, 2, {0, 2, 1});
 }
 
-TEST_CASE("copyleft_cgal_order_facets_around_edges: Debug2", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, Debug2) {
     Eigen::MatrixXd V(5, 3);
     V <<
         -22.160254037844382, 38.3826859021798441, 75,
@@ -186,16 +172,18 @@ TEST_CASE("copyleft_cgal_order_facets_around_edges: Debug2", "[igl/copyleft/cgal
     assert_order(V, F, 1, 2, {1, 0, 2});
 }
 
-TEST_CASE("copyleft_cgal_order_facets_around_edges: NormalSensitivity", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_order_facets_around_edges, NormalSensitivity) {
     // This example shows that epsilon difference in normal vectors could
     // results in very different ordering of facets.
 
     Eigen::MatrixXd V;
-    igl::readDMAT(test_common::data_path("duplicated_faces_V.dmat"), V);
+    test_common::load_matrix("duplicated_faces_V.dmat", V);
     Eigen::MatrixXi F;
-    igl::readDMAT(test_common::data_path("duplicated_faces_F.dmat"), F);
+    test_common::load_matrix("duplicated_faces_F.dmat", F);
 
     assert_order(V, F, 223, 224, {2, 0, 3, 1}, "duplicated_faces_N1.dmat");
     assert_order(V, F, 223, 224, {0, 3, 2, 1}, "duplicated_faces_N2.dmat");
+}
+
+
 }

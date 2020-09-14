@@ -14,23 +14,21 @@
 
 template <typename DerivedE, typename DerivedP>
 IGL_INLINE void igl::directed_edge_parents(
-  const Eigen::MatrixBase<DerivedE> & E,
+  const Eigen::PlainObjectBase<DerivedE> & E,
   Eigen::PlainObjectBase<DerivedP> & P)
 {
   using namespace Eigen;
   using namespace std;
-  typedef Eigen::Matrix<typename DerivedE::Scalar, Eigen::Dynamic, 1> VectorT;
-
-  VectorT I = VectorT::Constant(E.maxCoeff()+1,1,-1);
+  VectorXi I = VectorXi::Constant(E.maxCoeff()+1,1,-1);
   //I(E.col(1)) = 0:E.rows()-1
-  slice_into(colon<typename DerivedE::Scalar>(0, E.rows()-1), E.col(1).eval(), I);
-  VectorT roots,_;
+  slice_into(colon<int>(0,E.rows()-1),E.col(1).eval(),I);
+  VectorXi roots,_;
   setdiff(E.col(0).eval(),E.col(1).eval(),roots,_);
-  std::for_each(roots.data(),roots.data()+roots.size(),[&](typename VectorT::Scalar r){I(r)=-1;});
+  std::for_each(roots.data(),roots.data()+roots.size(),[&](int r){I(r)=-1;});
   slice(I,E.col(0).eval(),P);
 }
 
 #ifdef IGL_STATIC_LIBRARY
 // Explicit template instantiation
-template void igl::directed_edge_parents<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::MatrixBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
+template void igl::directed_edge_parents<Eigen::Matrix<int, -1, -1, 0, -1, -1>, Eigen::Matrix<int, -1, 1, 0, -1, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<int, -1, -1, 0, -1, -1> > const&, Eigen::PlainObjectBase<Eigen::Matrix<int, -1, 1, 0, -1, 1> >&);
 #endif

@@ -4,34 +4,34 @@
 #include <algorithm>
 #include <iostream>
 
-TEST_CASE("boundary_loop: cube", "[igl]")
+TEST(boundary_loop, cube)
 {
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //This is a cube of dimensions 1.0x1.0x1.0
-  igl::read_triangle_mesh(test_common::data_path("cube.off"), V, F);
+  test_common::load_mesh("cube.off", V, F);
 
   //Compute Boundary Loop
   Eigen::VectorXi boundary;
   igl::boundary_loop(F, boundary);
 
   //The cube has no boundary
-  REQUIRE (boundary.size() == 0);
+  ASSERT_EQ(0, boundary.size());
 }
 
-TEST_CASE("boundary_loop: bunny", "[igl]" "[slow]")
+TEST(boundary_loop, bunny)
 {
   Eigen::MatrixXd V;
   Eigen::MatrixXi F;
   //Load the Stanford bunny
-  igl::read_triangle_mesh(test_common::data_path("bunny.off"), V, F);
+  test_common::load_mesh("bunny.off", V, F);
 
   //Compute list of ordered boundary loops for a manifold mesh
   std::vector<std::vector<int> >boundaries;
   igl::boundary_loop(F, boundaries);
 
   //Compare our result with known results taken from meshlab
-  REQUIRE (boundaries.size() == 5);
+  ASSERT_EQ(5, boundaries.size());
 
   //Compute min, max and sum of boundaries
   size_t boundaryMin=9999999;
@@ -45,9 +45,9 @@ TEST_CASE("boundary_loop: bunny", "[igl]" "[slow]")
   }
 
   //Total boundary has 223 vertex
-  REQUIRE (boundarySum == 223);
+  ASSERT_EQ(223, boundarySum);
   //Largest loop has 80 vertex
-  REQUIRE (boundaryMax == 80);
+  ASSERT_EQ(80, boundaryMax);
   //Smallest loop has 22 vertex
-  REQUIRE (boundaryMin == 22);
+  ASSERT_EQ(22, boundaryMin);
 }

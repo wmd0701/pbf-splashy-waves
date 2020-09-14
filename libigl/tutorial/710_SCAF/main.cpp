@@ -1,4 +1,4 @@
-#include <igl/triangle/scaf.h>
+#include <igl/scaf.h>
 #include <igl/arap.h>
 #include <igl/boundary_loop.h>
 #include <igl/harmonic.h>
@@ -18,10 +18,10 @@ Eigen::MatrixXd V;
 Eigen::MatrixXi F;
 Eigen::MatrixXd V_uv;
 igl::Timer timer;
-igl::triangle::SCAFData scaf_data;
+igl::SCAFData scaf_data;
 
 bool show_uv = false;
-float uv_scale = 0.2f;
+float uv_scale = 0.2;
 
 bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier)
 {
@@ -33,7 +33,7 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
   if (key == ' ')
   {
     timer.start();
-    igl::triangle::scaf_solve(scaf_data, 1);
+    igl::scaf_solve(scaf_data, 1);
     std::cout << "time = " << timer.getElapsedTime() << std::endl;
   }
 
@@ -43,13 +43,13 @@ bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int modifier
     viewer.data().clear();
     viewer.data().set_mesh(V_uv,F);
     viewer.data().set_uv(V_uv);
-    viewer.core().align_camera_center(V_uv,F);
+    viewer.core.align_camera_center(V_uv,F);
   }
   else
   {
     viewer.data().set_mesh(V,F);
     viewer.data().set_uv(V_uv);
-    viewer.core().align_camera_center(V,F);
+    viewer.core.align_camera_center(V,F);
   }
 
   viewer.data().compute_normals();
@@ -99,11 +99,11 @@ int main(int argc, char *argv[])
     Eigen::MatrixXi F_filled;
     igl::topological_hole_fill(F, bnd, all_bnds, F_filled);
     igl::harmonic(F_filled, bnd, bnd_uv ,1, uv_init);
-    uv_init.conservativeResize(V.rows(), 2);
+    uv_init = uv_init.topRows(V.rows());
   }
 
   Eigen::VectorXi b; Eigen::MatrixXd bc;
-  igl::triangle::scaf_precompute(V, F, uv_init, scaf_data, igl::MappingEnergyType::SYMMETRIC_DIRICHLET, b, bc, 0);
+  igl::scaf_precompute(V, F, uv_init, scaf_data, igl::MappingEnergyType::SYMMETRIC_DIRICHLET, b, bc, 0);
 
   // Plot the mesh
   igl::opengl::glfw::Viewer viewer;

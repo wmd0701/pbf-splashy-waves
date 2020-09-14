@@ -11,13 +11,12 @@
 
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 
-TEST_CASE("copyleft_cgal_peel_outer_hull_layers: TwoCubes", "[igl/copyleft/cgal]")
-{
+TEST(copyleft_cgal_peel_outer_hull_layers, TwoCubes) {
     Eigen::MatrixXd V;
     Eigen::MatrixXi F;
-    igl::read_triangle_mesh(test_common::data_path("two-boxes-bad-self-union.ply"), V, F);
-    REQUIRE (V.rows() == 486);
-    REQUIRE (F.rows() == 708);
+    test_common::load_mesh("two-boxes-bad-self-union.ply", V, F);
+    ASSERT_EQ(486, V.rows());
+    ASSERT_EQ(708, F.rows());
 
     typedef CGAL::Exact_predicates_exact_constructions_kernel K;
     typedef K::FT Scalar;
@@ -46,16 +45,15 @@ TEST_CASE("copyleft_cgal_peel_outer_hull_layers: TwoCubes", "[igl/copyleft/cgal]
             vertices.data(), [](Scalar v) { return CGAL::to_double(v); });
     igl::writeOBJ("debug.obj", vertices, Ft);
 
-    REQUIRE (I.rows() == num_faces);
-    REQUIRE (I.minCoeff() == 0);
-    REQUIRE (I.maxCoeff() == 1);
+    ASSERT_EQ(num_faces, I.rows());
+    ASSERT_EQ(0, I.minCoeff());
+    ASSERT_EQ(1, I.maxCoeff());
 }
 
-TEST_CASE("PeelOuterHullLayers: CubeWithFold", "[igl/copyleft/cgal]")
-{
+TEST(PeelOuterHullLayers, CubeWithFold) {
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> V;
     Eigen::MatrixXi F;
-    igl::read_triangle_mesh(test_common::data_path("cube_with_fold.ply"), V, F);
+    test_common::load_mesh("cube_with_fold.ply", V, F);
 
     typedef CGAL::Exact_predicates_exact_constructions_kernel K;
     typedef K::FT Scalar;

@@ -1,4 +1,5 @@
 build/
+CMakeSettings.json
 .DS_Store
 .vs
 .vscode

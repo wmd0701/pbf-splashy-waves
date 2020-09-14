@@ -8,7 +8,6 @@
 #ifndef IGL_MAX_FACES_STOPPING_CONDITION_H
 #define IGL_MAX_FACES_STOPPING_CONDITION_H
 #include "igl_inline.h"
-#include "decimate_callback_types.h"
 #include <Eigen/Core>
 #include <vector>
 #include <set>
@@ -32,8 +31,37 @@ namespace igl
     int & m,
     const int orig_m,
     const int max_m,
-    decimate_stopping_condition_callback & stopping_condition);
-  IGL_INLINE decimate_stopping_condition_callback
+    std::function<bool(
+      const Eigen::MatrixXd &,
+      const Eigen::MatrixXi &,
+      const Eigen::MatrixXi &,
+      const Eigen::VectorXi &,
+      const Eigen::MatrixXi &,
+      const Eigen::MatrixXi &,
+      const std::set<std::pair<double,int> > &,
+      const std::vector<std::set<std::pair<double,int> >::iterator > &,
+      const Eigen::MatrixXd &,
+      const int,
+      const int,
+      const int,
+      const int,
+      const int)> & stopping_condition);
+  IGL_INLINE 
+    std::function<bool(
+      const Eigen::MatrixXd &,
+      const Eigen::MatrixXi &,
+      const Eigen::MatrixXi &,
+      const Eigen::VectorXi &,
+      const Eigen::MatrixXi &,
+      const Eigen::MatrixXi &,
+      const std::set<std::pair<double,int> > &,
+      const std::vector<std::set<std::pair<double,int> >::iterator > &,
+      const Eigen::MatrixXd &,
+      const int,
+      const int,
+      const int,
+      const int,
+      const int)> 
     max_faces_stopping_condition(
       int & m,
       const int orign_m,

@@ -78,8 +78,14 @@ void update_visualization(igl::opengl::glfw::Viewer & viewer)
     // Bunny is a watertight mesh so use pseudonormal for signing
     signed_distance_pseudonormal(V_vis,V,F,tree,FN,VN,EN,EMAP,S_vis,I,C,N);
   }
+  // push to [0,1] range
+  S_vis.array() = 0.5*(S_vis.array()/max_distance)+0.5;
+  MatrixXd C_vis;
+  // color without normalizing
+  igl::parula(S_vis,false,C_vis);
 
-  const auto & append_mesh = [&F_vis,&V_vis](
+
+  const auto & append_mesh = [&C_vis,&F_vis,&V_vis](
     const Eigen::MatrixXd & V,
     const Eigen::MatrixXi & F,
     const RowVector3d & color)
@@ -88,6 +94,8 @@ void update_visualization(igl::opengl::glfw::Viewer & viewer)
     F_vis.bottomRows(F.rows()) = F.array()+V_vis.rows();
     V_vis.conservativeResize(V_vis.rows()+V.rows(),3);
     V_vis.bottomRows(V.rows()) = V;
+    C_vis.conservativeResize(C_vis.rows()+V.rows(),3);
+    C_vis.bottomRows(V.rows()).rowwise() = color;
   };
   if(overlay)
   {
@@ -95,8 +103,8 @@ void update_visualization(igl::opengl::glfw::Viewer & viewer)
   }
   viewer.data().clear();
   viewer.data().set_mesh(V_vis,F_vis);
-  viewer.data().set_data(S_vis);
-  viewer.core().lighting_factor = overlay;
+  viewer.data().set_colors(C_vis);
+  viewer.core.lighting_factor = overlay;
 }
 
 bool key_down(igl::opengl::glfw::Viewer& viewer, unsigned char key, int mod)

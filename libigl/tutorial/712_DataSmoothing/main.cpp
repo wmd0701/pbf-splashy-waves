@@ -2,8 +2,8 @@
 #include <igl/hessian_energy.h>
 #include <igl/massmatrix.h>
 #include <igl/cotmatrix.h>
-#include <igl/isolines_map.h>
-#include <igl/parula.h>
+#include <igl/jet.h>
+#include <igl/edges.h>
 #include <igl/vertex_components.h>
 #include <igl/remove_unreferenced.h>
 #include <igl/opengl/glfw/Viewer.h>
@@ -18,6 +18,7 @@
 
 #include "tutorial_shared_path.h"
 
+#include <igl/isolines.h>
 
 
 int main(int argc, char * argv[])
@@ -26,11 +27,12 @@ int main(int argc, char * argv[])
 
     //Read our mesh
     Eigen::MatrixXd V;
-    Eigen::MatrixXi F;
+    Eigen::MatrixXi F, E;
     if(!igl::read_triangle_mesh(
         argc>1?argv[1]: TUTORIAL_SHARED_PATH "/beetle.off",V,F)) {
         std::cout << "Failed to load mesh." << std::endl;
     }
+    igl::edges(F,E);
 
     //Constructing an exact function to smooth
     Eigen::VectorXd zexact = V.block(0,2,V.rows(),1).array()
@@ -86,7 +88,14 @@ int main(int argc, char * argv[])
             default:
                 return false;
         }
-        viewer.data().set_data(*z);
+        Eigen::MatrixXd isoV;
+        Eigen::MatrixXi isoE;
+        if(key!='2')
+            igl::isolines(V, F, *z, 30, isoV, isoE);
+        viewer.data().set_edges(isoV,isoE,Eigen::RowVector3d(0,0,0));
+        Eigen::MatrixXd colors;
+        igl::jet(*z, true, colors);
+        viewer.data().set_colors(colors);
         return true;
     };
     std::cout << R"(Usage:
@@ -96,11 +105,6 @@ int main(int argc, char * argv[])
 4  Biharmonic smoothing (natural Hessian boundary)
 
 )";
-    Eigen::MatrixXd CM;
-    igl::parula(Eigen::VectorXd::LinSpaced(21,0,1).eval(),false,CM);
-    igl::isolines_map(Eigen::MatrixXd(CM),CM);
-    viewer.data().set_colormap(CM);
-    viewer.data().set_data(znoisy);
     viewer.launch();
 
     return 0;

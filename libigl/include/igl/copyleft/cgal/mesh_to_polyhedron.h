@@ -27,13 +27,10 @@ namespace igl
       //   poly  cgal polyhedron
       // Returns true only if (V,F) can be converted to a valid polyhedron (i.e. if
       // (V,F) is vertex and edge manifold).
-      template <
-        typename DerivedV,
-        typename DerivedF,
-        typename Polyhedron>
+      template <typename Polyhedron>
       IGL_INLINE bool mesh_to_polyhedron(
-        const Eigen::MatrixBase<DerivedV> & V,
-        const Eigen::MatrixBase<DerivedF> & F,
+        const Eigen::MatrixXd & V,
+        const Eigen::MatrixXi & F,
         Polyhedron & poly);
     }
   }

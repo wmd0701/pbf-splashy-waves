@@ -11,7 +11,21 @@ IGL_INLINE void igl::max_faces_stopping_condition(
   int & m,
   const int orig_m,
   const int max_m,
-  decimate_stopping_condition_callback & stopping_condition)
+  std::function<bool(
+    const Eigen::MatrixXd &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::VectorXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const std::set<std::pair<double,int> > &,
+    const std::vector<std::set<std::pair<double,int> >::iterator > &,
+    const Eigen::MatrixXd &,
+    const int,
+    const int,
+    const int,
+    const int,
+    const int)> & stopping_condition)
 {
   stopping_condition = 
     [orig_m,max_m,&m](
@@ -21,8 +35,8 @@ IGL_INLINE void igl::max_faces_stopping_condition(
     const Eigen::VectorXi &,
     const Eigen::MatrixXi &,
     const Eigen::MatrixXi &,
-    const igl::min_heap< std::tuple<double,int,int> > & ,
-    const Eigen::VectorXi &                             ,
+    const std::set<std::pair<double,int> > &,
+    const std::vector<std::set<std::pair<double,int> >::iterator > &,
     const Eigen::MatrixXd &,
     const int,
     const int,
@@ -37,13 +51,43 @@ IGL_INLINE void igl::max_faces_stopping_condition(
     };
 }
 
-IGL_INLINE igl::decimate_stopping_condition_callback
-igl::max_faces_stopping_condition(
-  int & m,
-  const int orig_m,
-  const int max_m)
+IGL_INLINE 
+  std::function<bool(
+    const Eigen::MatrixXd &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::VectorXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const std::set<std::pair<double,int> > &,
+    const std::vector<std::set<std::pair<double,int> >::iterator > &,
+    const Eigen::MatrixXd &,
+    const int,
+    const int,
+    const int,
+    const int,
+    const int)> 
+  igl::max_faces_stopping_condition(
+    int & m,
+    const int orig_m,
+    const int max_m)
 {
-  decimate_stopping_condition_callback stopping_condition;
-  max_faces_stopping_condition(m,orig_m,max_m,stopping_condition);
+  std::function<bool(
+    const Eigen::MatrixXd &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::VectorXi &,
+    const Eigen::MatrixXi &,
+    const Eigen::MatrixXi &,
+    const std::set<std::pair<double,int> > &,
+    const std::vector<std::set<std::pair<double,int> >::iterator > &,
+    const Eigen::MatrixXd &,
+    const int,
+    const int,
+    const int,
+    const int,
+    const int)> stopping_condition;
+  max_faces_stopping_condition(
+      m,orig_m,max_m,stopping_condition);
   return stopping_condition;
 }

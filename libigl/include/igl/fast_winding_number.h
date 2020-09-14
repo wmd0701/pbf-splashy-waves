@@ -1,7 +1,6 @@
 #ifndef IGL_FAST_WINDING_NUMBER
 #define IGL_FAST_WINDING_NUMBER
 #include "igl_inline.h"
-#include "FastWindingNumberForSoups.h"
 #include <Eigen/Core>
 #include <vector>
 namespace igl
@@ -13,8 +12,8 @@ namespace igl
   // data, and an expansion order, we define a taylor series expansion at each
   // octree cell.
   //
-  // The octree data is designed to come from igl::octree, and the areas (if not
-  // obtained at scan time), may be calculated using
+  // The octree data is designed to come from igl::octree, and the areas
+  // (if not obtained at scan time), may be calculated using
   // igl::copyleft::cgal::point_areas.
   //
   // Inputs:
@@ -33,26 +32,19 @@ namespace igl
   //   EC  #OctreeCells by #TaylorCoefficients list of expansion coefficients.
   //       (Note that #TaylorCoefficients = ∑_{i=1}^{expansion_order} 3^i)
   //
-  // See also: igl::copyleft::cgal::point_areas, igl::knn
-  template <
-    typename DerivedP, 
-    typename DerivedA, 
-    typename DerivedN,
-    typename Index, 
-    typename DerivedCH, 
-    typename DerivedCM, 
-    typename DerivedR,
+  template <typename DerivedP, typename DerivedA, typename DerivedN,
+    typename Index, typename DerivedCH, typename DerivedCM, typename DerivedR,
     typename DerivedEC>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedP>& P,
-    const Eigen::MatrixBase<DerivedN>& N,
-    const Eigen::MatrixBase<DerivedA>& A,
-    const std::vector<std::vector<Index> > & point_indices,
-    const Eigen::MatrixBase<DerivedCH>& CH,
-    const int expansion_order,
-    Eigen::PlainObjectBase<DerivedCM>& CM,
-    Eigen::PlainObjectBase<DerivedR>& R,
-    Eigen::PlainObjectBase<DerivedEC>& EC);
+  IGL_INLINE void fast_winding_number(const Eigen::MatrixBase<DerivedP>& P,
+                                      const Eigen::MatrixBase<DerivedN>& N,
+                                      const Eigen::MatrixBase<DerivedA>& A,
+            const std::vector<std::vector<Index> > & point_indices,
+            const Eigen::MatrixBase<DerivedCH>& CH,
+            const int expansion_order,
+            Eigen::PlainObjectBase<DerivedCM>& CM,
+            Eigen::PlainObjectBase<DerivedR>& R,
+            Eigen::PlainObjectBase<DerivedEC>& EC);
+  
   // Evaluate the fast winding number for point data, having already done the
   // the precomputation
   //
@@ -78,45 +70,22 @@ namespace igl
   // Outputs:
   //   WN  #Q by 1 list of windinng number values at each query point
   //
-  template <
-    typename DerivedP, 
-    typename DerivedA, 
-    typename DerivedN,
-    typename Index, 
-    typename DerivedCH, 
-    typename DerivedCM, 
-    typename DerivedR,
-    typename DerivedEC, 
-    typename DerivedQ, 
-    typename BetaType,
+  template <typename DerivedP, typename DerivedA, typename DerivedN,
+    typename Index, typename DerivedCH, typename DerivedCM, typename DerivedR,
+    typename DerivedEC, typename DerivedQ, typename BetaType,
     typename DerivedWN>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedP>& P,
-    const Eigen::MatrixBase<DerivedN>& N,
-    const Eigen::MatrixBase<DerivedA>& A,
-    const std::vector<std::vector<Index> > & point_indices,
-    const Eigen::MatrixBase<DerivedCH>& CH,
-    const Eigen::MatrixBase<DerivedCM>& CM,
-    const Eigen::MatrixBase<DerivedR>& R,
-    const Eigen::MatrixBase<DerivedEC>& EC,
-    const Eigen::MatrixBase<DerivedQ>& Q,
-    const BetaType beta,
-    Eigen::PlainObjectBase<DerivedWN>& WN);
-  template <
-    typename DerivedP, 
-    typename DerivedA, 
-    typename DerivedN,
-    typename DerivedQ, 
-    typename BetaType, 
-    typename DerivedWN>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedP>& P,
-    const Eigen::MatrixBase<DerivedN>& N,
-    const Eigen::MatrixBase<DerivedA>& A,
-    const Eigen::MatrixBase<DerivedQ>& Q,
-    const int expansion_order,
-    const BetaType beta,
-    Eigen::PlainObjectBase<DerivedWN>& WN);
+  IGL_INLINE void fast_winding_number(const Eigen::MatrixBase<DerivedP>& P,
+                                      const Eigen::MatrixBase<DerivedN>& N,
+                                      const Eigen::MatrixBase<DerivedA>& A,
+            const std::vector<std::vector<Index> > & point_indices,
+            const Eigen::MatrixBase<DerivedCH>& CH,
+            const Eigen::MatrixBase<DerivedCM>& CM,
+            const Eigen::MatrixBase<DerivedR>& R,
+            const Eigen::MatrixBase<DerivedEC>& EC,
+            const Eigen::MatrixBase<DerivedQ>& Q,
+            const BetaType beta,
+            Eigen::PlainObjectBase<DerivedWN>& WN);
+  
   // Evaluate the fast winding number for point data, with default expansion
   // order and beta (both are set to 2).
   //
@@ -132,80 +101,14 @@ namespace igl
   // Outputs:
   //   WN  #Q by 1 list of windinng number values at each query point
   //
-  template <
-    typename DerivedP, 
-    typename DerivedA, 
-    typename DerivedN,
-    typename DerivedQ, 
-    typename DerivedWN>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedP>& P,
-    const Eigen::MatrixBase<DerivedN>& N,
-    const Eigen::MatrixBase<DerivedA>& A,
-    const Eigen::MatrixBase<DerivedQ>& Q,
-    Eigen::PlainObjectBase<DerivedWN>& WN);
-  // Class declaration
-  namespace FastWindingNumber { namespace HDK_Sample{ template <typename T1, typename T2> class UT_SolidAngle;} }
-  struct FastWindingNumberBVH {
-    FastWindingNumber::HDK_Sample::UT_SolidAngle<float,float> ut_solid_angle;
-    // Need copies of these so they stay alive between calls.
-    std::vector<FastWindingNumber::HDK_Sample::UT_Vector3T<float> > U;
-    std::vector<int> F;
-  };
-  // Compute approximate winding number of a triangle soup mesh according to
-  // "Fast Winding Numbers for Soups and Clouds" [Barill et al. 2018].
-  //
-  // Inputs:
-  //   V  #V by 3 list of mesh vertex positions
-  //   F  #F by 3 list of triangle mesh indices into rows of V
-  //   Q  #Q by 3 list of query positions
-  // Outputs:
-  //   W  #Q list of winding number values
-  template <
-    typename DerivedV,
-    typename DerivedF,
-    typename DerivedQ,
-    typename DerivedW>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedV> & V,
-    const Eigen::MatrixBase<DerivedF> & F,
-    const Eigen::MatrixBase<DerivedQ> & Q,
-    Eigen::PlainObjectBase<DerivedW> & W);
-  // Precomputation for computing approximate winding numbers of a triangle
-  // soup.
-  //
-  // Inputs:
-  //   V  #V by 3 list of mesh vertex positions
-  //   F  #F by 3 list of triangle mesh indices into rows of V
-  //   order  Taylor series expansion order to use (e.g., 2)
-  // Outputs:
-  //   fwn_bvh  Precomputed bounding volume hierarchy
-  //   
-  template <
-    typename DerivedV,
-    typename DerivedF>
-  IGL_INLINE void fast_winding_number(
-    const Eigen::MatrixBase<DerivedV> & V,
-    const Eigen::MatrixBase<DerivedF> & F,
-    const int order,
-    FastWindingNumberBVH & fwn_bvh);
-  // After precomputation, compute winding number at a each of many points in a
-  // list.
-  //
-  // Inputs:
-  //   fwn_bvh  Precomputed bounding volume hierarchy
-  //   accuracy_scale  parameter controlling accuracy (e.g., 2)
-  //   Q  #Q by 3 list of query positions
-  // Outputs:
-  //   W  #Q list of winding number values
-  template <
-    typename DerivedQ,
-    typename DerivedW>
-  IGL_INLINE void fast_winding_number(
-    const FastWindingNumberBVH & fwn_bvh,
-    const float accuracy_scale,
-    const Eigen::MatrixBase<DerivedQ> & Q,
-    Eigen::PlainObjectBase<DerivedW> & W);
+  template <typename DerivedP, typename DerivedA, typename DerivedN,
+    typename DerivedQ, typename DerivedWN>
+  IGL_INLINE void fast_winding_number(const Eigen::MatrixBase<DerivedP>& P,
+                                      const Eigen::MatrixBase<DerivedN>& N,
+                                      const Eigen::MatrixBase<DerivedA>& A,
+                                      const Eigen::MatrixBase<DerivedQ>& Q,
+                                      Eigen::PlainObjectBase<DerivedWN>& WN
+                                      );
 }
 #ifndef IGL_STATIC_LIBRARY
 #  include "fast_winding_number.cpp"

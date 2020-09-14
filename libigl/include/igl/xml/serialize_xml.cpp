@@ -124,7 +124,7 @@ namespace igl
       {
         std::cerr << "File not found!" << std::endl;
         doc->PrintError();
-        delete doc;
+        doc = NULL;
       }
       else
       {

@@ -33,7 +33,7 @@ namespace igl
     typename DerivedS,
     typename DerivedV>
   IGL_INLINE void polar_svd(
-    const Eigen::MatrixBase<DerivedA> & A,
+    const Eigen::PlainObjectBase<DerivedA> & A,
     Eigen::PlainObjectBase<DerivedR> & R,
     Eigen::PlainObjectBase<DerivedT> & T,
     Eigen::PlainObjectBase<DerivedU> & U,
@@ -44,7 +44,7 @@ namespace igl
     typename DerivedR,
     typename DerivedT>
   IGL_INLINE void polar_svd(
-    const Eigen::MatrixBase<DerivedA> & A,
+    const Eigen::PlainObjectBase<DerivedA> & A,
     Eigen::PlainObjectBase<DerivedR> & R,
     Eigen::PlainObjectBase<DerivedT> & T);
 }

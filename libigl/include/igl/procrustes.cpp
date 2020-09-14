@@ -16,8 +16,8 @@ template <
   typename DerivedR,
   typename DerivedT>
 IGL_INLINE void igl::procrustes(
-    const Eigen::MatrixBase<DerivedX>& X,
-    const Eigen::MatrixBase<DerivedY>& Y,
+    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::PlainObjectBase<DerivedY>& Y,
     bool includeScaling,
     bool includeReflections,
     Scalar& scale,
@@ -29,12 +29,10 @@ IGL_INLINE void igl::procrustes(
   assert(X.cols() == Y.cols() && "Points have same dimensions");
 
   // Center data
-  const Matrix<typename DerivedX::Scalar, Dynamic, 1> Xmean = X.colwise().mean();
-  const Matrix<typename DerivedY::Scalar, Dynamic, 1> Ymean = Y.colwise().mean();
-  Matrix<typename DerivedX::Scalar, Dynamic, Dynamic> XC
-      = X.rowwise() - Xmean.transpose();
-  Matrix<typename DerivedY::Scalar, Dynamic, Dynamic> YC
-      = Y.rowwise() - Ymean.transpose();
+  const VectorXd Xmean = X.colwise().mean();
+  const VectorXd Ymean = Y.colwise().mean();
+  MatrixXd XC = X.rowwise() - Xmean.transpose();
+  MatrixXd YC = Y.rowwise() - Ymean.transpose();
 
   // Scale
   scale = 1.;
@@ -48,8 +46,8 @@ IGL_INLINE void igl::procrustes(
   }
 
   // Rotation
-  Matrix<typename DerivedX::Scalar, Dynamic, Dynamic> S = XC.transpose() * YC;
-  Matrix<typename DerivedT::Scalar, Dynamic, Dynamic> T;
+  MatrixXd S = XC.transpose() * YC;
+  MatrixXd T;
   if (includeReflections)
   {
     polar_dec(S,R,T);
@@ -71,8 +69,8 @@ template <
   int DIM,
   int TType>
 IGL_INLINE void igl::procrustes(
-    const Eigen::MatrixBase<DerivedX>& X,
-    const Eigen::MatrixBase<DerivedY>& Y,
+    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::PlainObjectBase<DerivedY>& Y,
     bool includeScaling,
     bool includeReflections,
     Eigen::Transform<Scalar,DIM,TType>& T)
@@ -93,8 +91,8 @@ template <
   typename DerivedR,
   typename DerivedT>
 IGL_INLINE void igl::procrustes(
-    const Eigen::MatrixBase<DerivedX>& X,
-    const Eigen::MatrixBase<DerivedY>& Y,
+    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::PlainObjectBase<DerivedY>& Y,
     bool includeScaling,
     bool includeReflections,
     Eigen::PlainObjectBase<DerivedR>& S,
@@ -111,8 +109,8 @@ template <
   typename DerivedR,
   typename DerivedT>
 IGL_INLINE void igl::procrustes(
-    const Eigen::MatrixBase<DerivedX>& X,
-    const Eigen::MatrixBase<DerivedY>& Y,
+    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::PlainObjectBase<DerivedY>& Y,
     Eigen::PlainObjectBase<DerivedR>& R,
     Eigen::PlainObjectBase<DerivedT>& t)
 {
@@ -125,8 +123,8 @@ template <
   typename Scalar,
   typename DerivedT>
 IGL_INLINE void igl::procrustes(
-    const Eigen::MatrixBase<DerivedX>& X,
-    const Eigen::MatrixBase<DerivedY>& Y,
+    const Eigen::PlainObjectBase<DerivedX>& X,
+    const Eigen::PlainObjectBase<DerivedY>& Y,
     Eigen::Rotation2D<Scalar>& R,
     Eigen::PlainObjectBase<DerivedT>& t)
 {
@@ -138,5 +136,5 @@ IGL_INLINE void igl::procrustes(
 }
 
 #ifdef IGL_STATIC_LIBRARY
-template void igl::procrustes<Eigen::Matrix<double, 3, 2, 0, 3, 2>, Eigen::Matrix<double, 3, 2, 0, 3, 2>, double, Eigen::Matrix<double, 2, 2, 0, 2, 2>, Eigen::Matrix<double, 2, 1, 0, 2, 1> >(Eigen::MatrixBase<Eigen::Matrix<double, 3, 2, 0, 3, 2> > const&, Eigen::MatrixBase<Eigen::Matrix<double, 3, 2, 0, 3, 2> > const&, bool, bool, double&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 2, 0, 2, 2> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 1, 0, 2, 1> >&);
+template void igl::procrustes<Eigen::Matrix<double, 3, 2, 0, 3, 2>, Eigen::Matrix<double, 3, 2, 0, 3, 2>, double, Eigen::Matrix<double, 2, 2, 0, 2, 2>, Eigen::Matrix<double, 2, 1, 0, 2, 1> >(Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 2, 0, 3, 2> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, 3, 2, 0, 3, 2> > const&, bool, bool, double&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 2, 0, 2, 2> >&, Eigen::PlainObjectBase<Eigen::Matrix<double, 2, 1, 0, 2, 1> >&);
 #endif
