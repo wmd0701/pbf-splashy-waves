@@ -44,7 +44,7 @@ class ParticlesSampler {
 	};
 
 	ParticlesSampler(const Eigen::Vector3i& gridResolution, double cellSize, const Eigen::Vector3i & initialIndex = Eigen::Vector3i(0, 0, 0))
-		: m_gridResolution(gridResolution), m_initialIndex(initialIndex), m_cellSize(cellSize), m_grid(Grid2()), 
+		: m_gridResolution(gridResolution), m_initialIndex(initialIndex), m_cellSize(cellSize), m_internalGrid(make_shared<Grid2>()), m_grid(*m_internalGrid), 
 		m_particlesPerCell(1), m_samplingMethod(uniform) {
 		applyParticles();
 	};
@@ -96,6 +96,10 @@ class ParticlesSampler {
 	protected:
 
 	#pragma region ClassMembers
+
+	// Grid created internally if none is passed to constructor, so that m_grid can reference it
+	shared_ptr<Grid2> m_internalGrid = nullptr; 
+
 	const Grid2 &m_grid;
 	Eigen::Vector3i m_gridResolution;
 	Eigen::Vector3i m_initialIndex;
