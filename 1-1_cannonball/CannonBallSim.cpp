@@ -13,7 +13,7 @@ bool CannonBallSim::advance() {
     switch (m_method) {
         case 0:
             // TODO: analytical solution
-			// v(t) = v_0*t + 0.5*a*t^2
+			// p(t) = v_0*t + 0.5*a*t^2
             break;
 
         case 1:
