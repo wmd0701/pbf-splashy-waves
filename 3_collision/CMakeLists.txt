@@ -1,9 +1,11 @@
 
 cmake_minimum_required(VERSION 3.1)
-project(PBS)
+project(3_collision)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../cmake)
+set(CMAKE_CXX_FLAGS "-Wall")
 
+# libigl
 option(LIBIGL_USE_STATIC_LIBRARY "Use libigl as static library" OFF)
 option(LIBIGL_WITH_ANTTWEAKBAR       "Use AntTweakBar"    OFF)
 option(LIBIGL_WITH_CGAL              "Use CGAL"           OFF)
@@ -27,16 +29,15 @@ if (NOT LIBIGL_FOUND)
     find_package(LIBIGL REQUIRED QUIET)
 endif()
 
-find_package(OpenMP)
-if (OPENMP_FOUND)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
+# Add default project files
+file(GLOB LIBFILES ${PROJECT_SOURCE_DIR}/../include/*.*)
+source_group("Library Files" FILES ${LIBFILES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 
-add_subdirectory(0_dummy)
-add_subdirectory(1-1_cannonball)
-add_subdirectory(1-2_spring)
-add_subdirectory(2-1_spinning)
-add_subdirectory(2-2_gyro)
-add_subdirectory(3_collision)
+# Add your project files
+file(GLOB SRCFILES *.cpp)
+file(GLOB HFILES *.h)
+
+add_definitions(-DIGL_VIEWER_VIEWER_QUIET)
+add_executable(${PROJECT_NAME} ${SRCFILES} ${HFILES} ${LIBFILES} )
+target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
