@@ -245,11 +245,13 @@ void FluidSim::MacCormackClamp(const Array2d& d, const Array2d& d_forward, const
 	// Clamp density
 	for (int y = 1; y < m_res_y - 1; ++y) {
 		for (int x = 1; x < m_res_x - 1; ++x) {
-			double last_x_velocity = (u(x, y) + u(x + 1, y)) / 2;
-			double last_y_velocity = (v(x, y) + v(x, y + 1)) / 2;
+			// TODO: Compute the velocity (same as in advectDensitySL)
+			double last_x_velocity = 0;
+			double last_y_velocity = 0;
 
-			double last_x = x - m_dt * m_res_x * last_x_velocity;
-			double last_y = y - m_dt * m_res_y * last_y_velocity;
+			// TODO: Find the last position of the particle (in grid coordinates) (same as in advectDensitySL)
+			double last_x = 0;
+			double last_y = 0;
 
 			// Make sure the coordinates are inside the boundaries
 			// Densities are known between 1 and res-2
@@ -285,13 +287,13 @@ void FluidSim::MacCormackClamp(const Array2d& d, const Array2d& d_forward, const
 	// Clamp velocities (u), MAC grid
 	for (int y = 1; y < m_res_y - 1; ++y) {
 		for (int x = 1; x < m_res_x; ++x) {
-			// TODO: Compute the velocity
-			double last_x_velocity = u(x, y);
-			double last_y_velocity = (v(x, y) + v(x - 1, y) + v(x - 1, y + 1) + v(x, y + 1)) / 4;
+			// TODO: Compute the velocity (same as in advectVelocitySL)
+			double last_x_velocity = 0;
+			double last_y_velocity = 0;
 
-			// TODO: Find the last position of the particle (in grid coordinates)
-			double last_x = x - m_dt * m_res_x * last_x_velocity;
-			double last_y = y - m_dt * m_res_y * last_y_velocity;
+			// TODO: Find the last position of the particle (in grid coordinates) (same as in advectVelocitySL)
+			double last_x = 0;
+			double last_y = 0;
 
 			// Make sure the coordinates are inside the boundaries
 			// Being conservative, one can say that the velocities are known between 1.5 and res-2.5
@@ -328,13 +330,13 @@ void FluidSim::MacCormackClamp(const Array2d& d, const Array2d& d_forward, const
 	// Clamp velocities (v), MAC grid
 	for (int y = 1; y < m_res_y; ++y) {
 		for (int x = 1; x < m_res_x - 1; ++x) {
-			// TODO: Compute the velocity
-			double last_x_velocity = (u(x, y) + u(x + 1, y) + u(x + 1, y - 1) + u(x, y - 1)) / 4;
-			double last_y_velocity = v(x, y);
+			// TODO: Compute the velocity (same as in advectVelocitySL)
+			double last_x_velocity = 0;
+			double last_y_velocity = 0;
 
-			// TODO: Find the last position of the particle (in grid coordinates)
-			double last_x = x - m_dt * m_res_x * last_x_velocity;
-			double last_y = y - m_dt * m_res_y * last_y_velocity;
+			// TODO: Find the last position of the particle (in grid coordinates) (same as in advectVelocitySL)
+			double last_x = 0;
+			double last_y = 0;
 
 			// Make sure the coordinates are inside the boundaries
 			// Being conservative, one can say that the velocities are known between 1.5 and res-2.5
