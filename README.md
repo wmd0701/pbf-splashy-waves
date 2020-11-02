@@ -1,17 +1,7 @@
-# Physically-based Simulation in Computer Graphics HS2020 - Course Exercises
+# PBS HS2020 - Project "PBF Splashy Waves"
 
-<!-- ## Exercise Overview
+This project by group 17 implements a position based water simulation
 
-[Exercise 1: Time Integration](ex1.pdf)
-
-[Exercise 2: Rigid Body Rotation](ex2.pdf)
-
-[Exercise 3: Collision Handling](ex3.pdf)
-
-[Exercise 4: Mass-Spring System](ex4.pdf)
-
-[Exercise 5: Fluid Simulation](ex5.pdf)
- -->
 ## Installation
 
 ### Git and CMAKE
@@ -43,15 +33,13 @@ If you are using linux with a virtual machine on Windows, it is *recommended* to
 `libigl` supports the **Microsoft Visual Studio 2015** compiler and later, in *64bit* mode. You can download *Visual Studio 2019 Community* for free from [here](https://visualstudio.microsoft.com/vs/).
 
 
-### Cloning the Exercise Repository
-Before you are able to clone your private exercise repository, you need to have an active [gitlab@ETH](https://gitlab.ethz.ch/) account. Then you can [fork](https://docs.gitlab.com/ee/gitlab-basics/fork-project.html) this project to create your own private online repository.
+### Cloning, Building and Running the Project
+Before you are able to clone this project repository, you need to have an active [gitlab@ETH](https://gitlab.ethz.ch/) account.
 
 In the next step you need to clone it to your local hard drive:
 ```
-git clone https://gitlab.ethz.ch/'Your_Git_Username'/pbs20.git
+git clone https://gitlab.ethz.ch/pbs20-group17/pbs20.git
 ```
-'Your_Git_Username' needs to be replaced accordingly. This can take a moment.
-
 Next, cd into the newly created folder, and run the following commands inside the relevant subfolder to setup the build folder:
 ```
 cd pbs20; mkdir build
@@ -62,25 +50,7 @@ On Windows, use the CMAKE gui with the buttons Configure and Generate.
 
 Compile and run the executable, e.g. Ubuntu:
 ```
-make && ./0_dummy/0_dummy
+make && ./src/pbf-splashy-waves
 ```
 Or use your favorite IDE. In case of Visual Studio, you need to open ```build/PBS.sln``` file.
-
-### Update Your Forked Repository
-
-To update your forked repository, check this page: [how-do-i-update-a-github-forked-repository](https://stackoverflow.com/questions/7244321/how-do-i-update-a-github-forked-repository)
-
-Basically, you are required to add our repository as a remote to your own one:
-```
-git remote add upstream https://gitlab.ethz.ch/cglsim/pbs20.git
-```
-Then, fetch updates from it:
-```
-git fetch upstream
-```
-Lastly, move to your `master` branch and merge updates into yours:
-```
-git checkout master
-git merge upstream/master
-```
-Note that you need to run the first command *only once* for adding, and the following steps (cmake as well!) should be done again for new updates.
+Set the "pbf-splashy-waves" project as the startup project and run.
