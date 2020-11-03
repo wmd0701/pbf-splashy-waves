@@ -1,11 +1,30 @@
 #include "Simulation.h"
+#include <vector>
+
+class Particle {
+public:
+	Particle(Eigen::Vector3f);
+
+	// intrinsic properties
+	Eigen::Vector3f m_Position;
+	Eigen::Vector3f m_Velocity;
+	Eigen::Vector3f m_Acceleration;
+	Eigen::Vector3f m_Force; // eg. due to collision
+
+	float m_Density;
+
+	// external forces
+	Eigen::Vector3f m_GravitationForce;
+
+};
+
 
 /*
  * Example simulation that changes the colors of a cube.
  */
-class DummySim : public Simulation {
+class FluidSim : public Simulation {
 public:
-	DummySim();
+	FluidSim();
 
 	virtual void init() override;
 	virtual void resetMembers() override;
@@ -21,4 +40,6 @@ private:
 	Eigen::MatrixXd m_renderV;  // vertex positions for rendering
 	Eigen::MatrixXi m_renderF;  // face indices for rendering
 	Eigen::MatrixXd m_renderC;  // colors per face for rendering
+
+	std::vector<Particle> m_Particles; // individual particles for the simulation
 };
