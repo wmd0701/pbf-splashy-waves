@@ -3,18 +3,18 @@
 
 class Particle {
 public:
-	Particle(Eigen::Vector3f);
+	Particle(Eigen::Vector3d);
 
 	// intrinsic properties
-	Eigen::Vector3f m_Position;
-	Eigen::Vector3f m_Velocity;
-	Eigen::Vector3f m_Acceleration;
-	Eigen::Vector3f m_Force; // eg. due to collision
+	Eigen::Vector3d m_position;
+	Eigen::Vector3d m_velocity;
+	Eigen::Vector3d m_acceleration;
+	Eigen::Vector3d m_force; // eg. due to collision
 
-	float m_Density;
+	float m_density;
 
 	// external forces
-	Eigen::Vector3f m_GravitationForce;
+	Eigen::Vector3d m_gravitationForce;
 
 };
 
@@ -41,5 +41,6 @@ private:
 	Eigen::MatrixXi m_renderF;  // face indices for rendering
 	Eigen::MatrixXd m_renderC;  // colors per face for rendering
 
-	std::vector<Particle> m_Particles; // individual particles for the simulation
+	std::vector<Particle> m_particles; // individual particles for the simulation
+	float m_particleRadius;
 };
