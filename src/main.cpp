@@ -15,10 +15,11 @@ public:
 
 	DummyGui() {
 		// create a new dummy simulation
+		
 		p_dummySim = new DummySim();
+		setSimulation(p_dummySim);
 
 		// set this simulation as the simulation that is running in our GUI
-		setSimulation(p_dummySim);
 
 		// start the GUI
 		start();
