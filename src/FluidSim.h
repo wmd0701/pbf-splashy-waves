@@ -9,7 +9,7 @@
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 5
+#define PARTICLES_PER_CUBE_SIDE 10
 #define PARTICLE_RADIUS 0.5f
 
 

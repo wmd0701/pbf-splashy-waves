@@ -146,12 +146,11 @@ bool FluidSim::advance() {
 		for (int i = 0; i < n; ++i) {
 			Eigen::Vector3f delta_pi = Eigen::Vector3f(0, 0, 0);
 			for (int j = 0; j < n; ++j) {
-				Particle & pj = m_particles[j];
-				//delta_pi += (pi.m_lambda + pj.m_lambda) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS); // equation (12)
+				//delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(renderPositions->row(i) - renderPositions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
 				const double k = 0.1;
-				const Vector3d delta_q = Vector3d(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
-				double s_corr = -k * std::pow(poly6Kernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.d); // equation (13)
-				delta_pi += (pi.m_lambda + pj.m_lambda + s_corr) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS); // equation (14)
+				const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
+				float s_corr = -k * std::pow(poly6Kernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.); // equation (13)
+				delta_pi += (lambdas[i] + lambdas[j] + s_corr) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (14)
 			}
 			delta_pi *= 1 / REST_DENSITY;
 			positionsStar->row(i) += delta_pi;
