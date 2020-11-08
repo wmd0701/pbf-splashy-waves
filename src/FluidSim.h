@@ -1,34 +1,18 @@
 #include "Simulation.h"
+#include "InstancedViewer.h"
 #include <vector>
 
-#define TIME_STEP_SIZE 0.1d
-#define REST_DENSITY 0.1d
-#define EPSILON 0.0000000001d
-#define NEIGHBOURHOOD_RADIUS 2.0d
+#define TIME_STEP_SIZE 0.1f
+#define REST_DENSITY 0.1f
+#define EPSILON 0.00001f
+#define NEIGHBOURHOOD_RADIUS 0.5f
 
-using Eigen::Vector3d;
-
-class Particle {
-public:
-	Particle(Vector3d);
-
-	// intrinsic properties
-	Vector3d m_position;
-	Vector3d m_delta_position;
-	Vector3d m_position_star;
-	double m_lambda;
-	Vector3d m_velocity;
-	Vector3d m_acceleration;
-	Vector3d m_force; // eg. due to collision
-
-	double m_density;
-	double m_constr_gradient;
-};
+// neighbourhood_radius and particle_radius must be the same.
+// else the visualization and grid generation generates particles too close
+#define PARTICLES_PER_CUBE_SIDE 5
+#define PARTICLE_RADIUS 0.5f
 
 
-/*
- * Example simulation that changes the colors of a cube.
- */
 class FluidSim : public Simulation {
 public:
 	FluidSim();
@@ -39,19 +23,47 @@ public:
 	virtual bool advance() override;
 	virtual void renderRenderGeometry(igl::opengl::glfw::Viewer &viewer) override;
 
+	InstancedViewer* p_iviewer;
 private:
-	Eigen::MatrixXd m_V;  // vertex positions
-	Eigen::MatrixXi m_F;  // face indices
-	Eigen::MatrixXd m_C;  // colors per face
+	float m_dt;
+	
+	/* PARTICLE DATA
+	 * positions (and colors) are double buffered, 
+	 * as one (positions) needs to be available for the gpu.
+	 * Therefore only write to positionsStar
+	 * Reading from positions is safe and stores current position.
+	 * Velocities, densities and lambdas can be modified at will.
+	 * Each particle entry is stored in a single row of each matrix.
+	 */ 
+	bool initializedInstancedViewer = false;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positionsStar;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions;
+	
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities;
+	Eigen::VectorXf densities;
+	Eigen::VectorXf lambdas;
 
-	Eigen::MatrixXd m_renderV;  // vertex positions for rendering
-	Eigen::MatrixXi m_renderF;  // face indices for rendering
-	Eigen::MatrixXd m_renderC;  // colors per face for rendering
+	/* vectors to store individual colors for each particle.
+	 * requires setPerinstanceColor(true) in instancedViewer.
+	 * only write to updateColors, renderColors are read by gpu.
+	 */
+	Eigen::VectorXf* updateColors;
+	Eigen::VectorXf* renderColors;
+	
+	// Actual storage Vectors for positions and colors. Do not modify.
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions1;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions2;
+	Eigen::VectorXf colors1;
+	Eigen::VectorXf colors2;
+	
 
-	std::vector<Particle> m_particles; // individual particles for the simulation
-	float m_particleRadius;
+	// slow igl renderer data. Used for boundaries/obstacles and floor.
+	Eigen::MatrixXd m_renderV;
+	Eigen::MatrixXi m_renderF;
+	Eigen::MatrixXd m_renderC;
+	Eigen::MatrixXd m_renderUV;
 
-	double poly6Kernel(Vector3d distance, double h);
-	double spikyKernel(Vector3d distance, double h);
-	Vector3d gradSpikyKernel(Vector3d r, double h);
+	float poly6Kernel(Eigen::Vector3f distance, float h);
+	float spikyKernel(Eigen::Vector3f distance, float h);
+	Eigen::Vector3f gradSpikyKernel(Eigen::Vector3f r, float h);
 };
