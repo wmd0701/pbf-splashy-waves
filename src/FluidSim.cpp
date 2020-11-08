@@ -178,11 +178,11 @@ bool FluidSim::advance() {
 			Vector3d delta_pi = Vector3d(0, 0, 0);
 			for (int j = 0; j < n; ++j) {
 				Particle & pj = m_particles[j];
-				//delta_pi += (pi.m_lambda + pj.m_lambda) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS);
+				//delta_pi += (pi.m_lambda + pj.m_lambda) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS); // equation (12)
 				const double k = 0.1;
 				const Vector3d delta_q = Vector3d(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
-				double s_corr = -k * std::pow(poly6Kernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.d);
-				delta_pi += (pi.m_lambda + pj.m_lambda + s_corr) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS);
+				double s_corr = -k * std::pow(poly6Kernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.d); // equation (13)
+				delta_pi += (pi.m_lambda + pj.m_lambda + s_corr) * gradSpikyKernel(pi.m_position - pj.m_position, NEIGHBOURHOOD_RADIUS); // equation (14)
 			}
 			delta_pi *= 1 / REST_DENSITY;
 			pi.m_delta_position = delta_pi;
