@@ -41,7 +41,8 @@ private:
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positionsStar;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions;
 	
-	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocities;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocities_new;
 	Eigen::VectorXf densities;
 	Eigen::VectorXf lambdas;
 
@@ -55,6 +56,8 @@ private:
 	// Actual storage Vectors for positions and colors. Do not modify.
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions1;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions2;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities1;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities2;
 	Eigen::VectorXf colors1;
 	Eigen::VectorXf colors2;
 	

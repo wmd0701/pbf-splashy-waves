@@ -78,7 +78,10 @@ void FluidSim::resetMembers() {
 	colors2 = colors1;
 	positions2 = positions1;
 
-	velocities = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities1 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities2 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities = &velocities1;
+	velocities_new = &velocities2;
 	densities = Eigen::VectorXf::Zero(n * n * n);
 	lambdas = Eigen::VectorXf::Zero(n * n * n);
 }
@@ -87,10 +90,13 @@ void FluidSim::updateRenderGeometry() {
 	// just swap the pointers, no copying or even rewriting of all the data (it's done on the gpu)
 	auto temp = positions;
 	auto temp2 = renderColors;
+	auto temp3 = velocities;
 	positions = positionsStar;
 	positionsStar = temp;
 	renderColors = updateColors;
 	updateColors = temp2;
+	velocities = velocities_new;
+	velocities_new = temp3;
 }
 
 bool FluidSim::advance() {
@@ -103,9 +109,9 @@ bool FluidSim::advance() {
 	#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		// apply gravity
-		velocities.row(i) += m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
+		velocities->row(i) += m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
 		// predict position
-		positionsStar->row(i) = positions->row(i) + m_dt * velocities.row(i);
+		positionsStar->row(i) = positions->row(i) + m_dt * velocities->row(i);
 	}
 	// TODO: find neighbours
 	
@@ -145,13 +151,14 @@ bool FluidSim::advance() {
 			denominator += EPSILON;
 			lambdas[i] = - C_i / denominator; // equation (11)
 		}
+
 		// calculate delta_p_i, equation (12, rsp. 14 for tensile stability)
 		#pragma omp parallel for
 		for (int i = 0; i < n; ++i) {
 			Eigen::Vector3f delta_pi = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 			for (int j = 0; j < n; ++j) {
 				// equation 12, more efficient
-				delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
+				delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
 
 				// equation 14, less efficient, but fixes tensile instability
 				/*const float k = 0.1f;
@@ -163,15 +170,15 @@ bool FluidSim::advance() {
 
 
 			// collision detection & response
+			// !!! position_i = positionsStar->row(i) would not work properly
 			const Eigen::RowVector3f& position_i = positions->row(i);
 			Eigen::RowVector3f contactPoint;
 			Eigen::Vector3f normal; // unit surface normal
 
 			if (collision(position_i, contactPoint, normal)) {
-				//std::cout << "collision" << std::endl;
-				const Eigen::Vector3f velocity = velocities.row(i);
+				const Eigen::Vector3f velocity = velocities->row(i);
 				float penetrationDepth = (position_i - contactPoint).norm();
-				velocities.row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (m_dt * velocity.norm())) * velocity.dot(normal);
+				velocities->row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (m_dt * velocity.norm())) * velocity.dot(normal);
 				positionsStar->row(i) = contactPoint;
 			}
 
@@ -186,10 +193,22 @@ bool FluidSim::advance() {
 	#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		// update velocity
-		velocities.row(i) = 1 / m_dt * (positionsStar->row(i) - positions->row(i));
+		velocities->row(i) = 1 / m_dt * (positionsStar->row(i) - positions->row(i));
 
-		// OPTIONAL: apply vorticity confinement & XSPH viscosity
+		// OPTIONAL: apply vorticity confinement
 		// not for now
+
+		// OPTIONAL: apply XSPH viscosity, equation (17)
+		const float c = 0.01f;
+		velocities_new->row(i) = velocities->row(i);
+		for (int j = 0; j < n; ++j) {
+			Eigen::Vector3f v_ij = velocities->row(j) - velocities->row(i);
+			velocities_new->row(i) += c * v_ij * poly6Kernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS);
+		}
+
+
+		// update velocities (already happens automatically, due to double buffering)
+		//velocities->row(i) = velocities_new->row(i);
 
 		// update position (already happens automatically, due to double buffering)
 		//positions->row(i) = positionsStar->row(i);
