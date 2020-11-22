@@ -3,13 +3,15 @@
 #include <vector>
 
 #define TIME_STEP_SIZE 0.1f
-#define REST_DENSITY 0.1f
-#define EPSILON 0.00001f
-#define NEIGHBOURHOOD_RADIUS 0.5f
+#define REST_DENSITY 1000.f
+#define NEIGHBOURHOOD_RADIUS 3.f
+// user specified relaxation parameter (equation 11):
+// Bigger -> slower contraction of particles: influences the negative pressure inverse proportionally
+#define EPSILON 1.0f
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 10
+#define PARTICLES_PER_CUBE_SIDE 5
 #define PARTICLE_RADIUS 0.5f
 
 
@@ -66,4 +68,5 @@ private:
 	float poly6Kernel(Eigen::Vector3f distance, float h);
 	float spikyKernel(Eigen::Vector3f distance, float h);
 	Eigen::Vector3f gradSpikyKernel(Eigen::Vector3f r, float h);
+	bool collision(const Eigen::Vector3f pos, Eigen::RowVector3f &contactPoint, Eigen::Vector3f &normal);
 };

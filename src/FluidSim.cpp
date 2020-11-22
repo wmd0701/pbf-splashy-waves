@@ -108,17 +108,19 @@ bool FluidSim::advance() {
 	// newton iterations
 	int solverIterations = 3;
 	for (int iter = 0; iter < solverIterations; ++iter) {
+
 		// calculate lambda_i (equation 11)
 		for (int i = 0; i < n; ++i) {
 			// calculate density
 			densities[i] = 0.0f;
 			const Eigen::RowVector3f& position_i = positions->row(i);
+			// TODO: only iterate over neighbours of i
 			for (int j = 0; j < n; ++j) {
 				densities[i] += poly6Kernel(position_i - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (2)
 			}
-			float C_i = densities[i] / REST_DENSITY - 1.;
+			float C_i = densities[i] / REST_DENSITY - 1.f;
 			// calculate denominator, equation (11)
-			double denominator = 0;
+			float denominator = 0;
 
 			for (int k = 0; k < n; ++k) {
 				// calculate gradient d_pk_Ci, equation (8)
@@ -146,20 +148,44 @@ bool FluidSim::advance() {
 		for (int i = 0; i < n; ++i) {
 			Eigen::Vector3f delta_pi = Eigen::Vector3f(0, 0, 0);
 			for (int j = 0; j < n; ++j) {
-				//delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(renderPositions->row(i) - renderPositions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
-				const double k = 0.1;
-				const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
-				float s_corr = -k * std::pow(poly6Kernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.); // equation (13)
+				// equation 12, more efficient
+				delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
+
+				// equation 14, less efficient, but fixes tensile instability
+				/*const double k = 0.1;
+				const Eigen::Vector3f delta_q = Eigen::Vector3f(0.2, 0.2, 0.2) / 3.f * NEIGHBOURHOOD_RADIUS;
+				float s_corr = -k * std::pow(poly6Kernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.f); // equation (13)
 				delta_pi += (lambdas[i] + lambdas[j] + s_corr) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (14)
+				*/
 			}
 			delta_pi *= 1 / REST_DENSITY;
-			positionsStar->row(i) += delta_pi;
-		}
-		// collision detection & response
-		// no collisions for now
 
+
+			// collision detection & response
+			const Eigen::RowVector3f& position_i = positions->row(i);
+			Eigen::RowVector3f contactPoint;
+			Eigen::Vector3f normal; // unit surface normal
+
+			if (collision(position_i, contactPoint, normal)) {
+				//std::cout << "collision" << std::endl;
+				const Eigen::Vector3f velocity = velocities.row(i);
+				float penetrationDepth = (position_i - contactPoint).norm();
+				velocities.row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (m_dt * velocity.norm())) * velocity.dot(normal);
+				positionsStar->row(i) = contactPoint;
+			}
+
+
+			// update position
+			positionsStar->row(i) += delta_pi;
+
+
+		}
+
+
+
+
+		/*
 		// update position
-		/* included in above loop directly
 		for (int i = 0; i < n; ++i) {
 			Particle & pi = m_particles[i];
 			pi.m_position_star += pi.m_delta_position;
@@ -175,6 +201,7 @@ bool FluidSim::advance() {
 		// not for now
 
 		// update position (already happens automatically, due to double buffering)
+		//positions->row(i) = positionsStar->row(i);
 	}
 
 	// advance step
@@ -242,4 +269,17 @@ Eigen::Vector3f FluidSim::gradSpikyKernel(Eigen::Vector3f r, float h) {
 	} else {
 		return Eigen::Vector3f(0, 0, 0);
 	}
+}
+
+// collision detection
+bool FluidSim::collision(const Eigen::Vector3f pos, Eigen::RowVector3f &contactPoint, Eigen::Vector3f &normal) {
+	if (pos.y() < 0) {
+		normal = Eigen::Vector3f(0, 1, 0);
+		contactPoint = Eigen::Vector3f(pos.x(), 0, pos.z());
+
+		return true;
+	} else {
+		return false;
+	}
+
 }
