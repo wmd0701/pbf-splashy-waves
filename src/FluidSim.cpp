@@ -96,6 +96,9 @@ void FluidSim::updateRenderGeometry() {
 bool FluidSim::advance() {
 	/// Simulation step
 	const int n = positions->rows();
+	// delta q from equation (13)
+	const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
+	const float poly6kernel_delta_q = poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS);
 	// apply forces & predict position
 	for (int i = 0; i < n; ++i) {
 		// apply gravity
@@ -103,8 +106,8 @@ bool FluidSim::advance() {
 		// predict position
 		positionsStar->row(i) = positions->row(i) + m_dt * velocities.row(i);
 	}
-	// find neighbours
-
+	// TODO: find neighbours
+	
 	// newton iterations
 	int solverIterations = 3;
 	for (int iter = 0; iter < solverIterations; ++iter) {
@@ -112,59 +115,45 @@ bool FluidSim::advance() {
 		for (int i = 0; i < n; ++i) {
 			// calculate density
 			densities[i] = 0.0f;
-			const Eigen::RowVector3f& position_i = positions->row(i);
+			const Eigen::RowVector3f& position_i = positionsStar->row(i);
 			for (int j = 0; j < n; ++j) {
-				densities[i] += poly6Kernel(position_i - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (2)
+				densities[i] += poly6Kernel(position_i - positionsStar->row(j), NEIGHBOURHOOD_RADIUS); // equation (2)
 			}
-			float C_i = densities[i] / REST_DENSITY - 1.;
+			float C_i = densities[i] / REST_DENSITY - 1.f;
 			// calculate denominator, equation (11)
-			double denominator = 0;
+			float denominator = 0.0f;
 
 			for (int k = 0; k < n; ++k) {
 				// calculate gradient d_pk_Ci, equation (8)
-				float d_pk_Ci = 0;
+				Eigen::Vector3f d_pk_Ci = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 				if (k == i) {
-					float d_pk_W = 0;
 					for (int j = 0; j < n; ++j) {
-						d_pk_W += spikyKernel(position_i - positions->row(j), NEIGHBOURHOOD_RADIUS);
+						d_pk_Ci += gradSpikyKernel(position_i - positionsStar->row(j), NEIGHBOURHOOD_RADIUS);
 					}
-					d_pk_Ci = d_pk_W;
 				} else {
-					d_pk_Ci = - spikyKernel(position_i - positions->row(k), NEIGHBOURHOOD_RADIUS);
+					d_pk_Ci = -1.0f * gradSpikyKernel(position_i - positionsStar->row(k), NEIGHBOURHOOD_RADIUS);
 				}
-				d_pk_Ci *= 1 / REST_DENSITY;
+				d_pk_Ci *= 1.0f / REST_DENSITY;
 
-				denominator += d_pk_Ci * d_pk_Ci;
+				denominator += d_pk_Ci.squaredNorm();
 			}
 			denominator += EPSILON;
-
 			lambdas[i] = - C_i / denominator; // equation (11)
-
 		}
-
 		// calculate delta_p_i, equation (12, rsp. 14 for tensile stability)
 		for (int i = 0; i < n; ++i) {
-			Eigen::Vector3f delta_pi = Eigen::Vector3f(0, 0, 0);
+			Eigen::Vector3f delta_pi = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 			for (int j = 0; j < n; ++j) {
 				//delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(renderPositions->row(i) - renderPositions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
-				const double k = 0.1;
-				const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
-				float s_corr = -k * std::pow(poly6Kernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS) / poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS), 4.); // equation (13)
-				delta_pi += (lambdas[i] + lambdas[j] + s_corr) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (14)
+				const float k = 0.1f;
+				float s_corr = -k * std::pow(poly6Kernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS) / poly6kernel_delta_q, 4); // equation (13)
+				delta_pi += (lambdas[i] + lambdas[j] + s_corr) * gradSpikyKernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS); // equation (14)
 			}
 			delta_pi *= 1 / REST_DENSITY;
 			positionsStar->row(i) += delta_pi;
 		}
 		// collision detection & response
 		// no collisions for now
-
-		// update position
-		/* included in above loop directly
-		for (int i = 0; i < n; ++i) {
-			Particle & pi = m_particles[i];
-			pi.m_position_star += pi.m_delta_position;
-		}
-		*/
 	}
 
 	for (int i = 0; i < n; ++i) {
@@ -216,9 +205,9 @@ void FluidSim::renderRenderGeometry(
 
 // density estimation
 float FluidSim::poly6Kernel(Eigen::Vector3f r, float h) {
-	double r_norm = r.norm();
+	float r_norm = r.norm();
 	if (r_norm <= h) {
-		return 315 / (64 * M_PI * std::pow(h, 9.)) * std::pow(h*h - r_norm*r_norm, 3.);
+		return 315.f / (64.f * M_PI * std::pow(h, 9)) * std::pow(h*h - r_norm*r_norm, 3);
 	} else {
 		return 0;
 	}
@@ -226,9 +215,9 @@ float FluidSim::poly6Kernel(Eigen::Vector3f r, float h) {
 
 // pressure gradient
 float FluidSim::spikyKernel(Eigen::Vector3f r, float h) {
-	double r_norm = r.norm();
+	float r_norm = r.norm();
 	if (r_norm <= h) {
-		return 15 / (M_PI * std::pow(h, 6.)) * std::pow(h - r_norm, 3.);
+		return 15.f / (M_PI * std::pow(h, 6)) * std::pow(h - r_norm, 3);
 	} else {
 		return 0;
 	}
@@ -237,9 +226,9 @@ float FluidSim::spikyKernel(Eigen::Vector3f r, float h) {
 // spiky gradient
 Eigen::Vector3f FluidSim::gradSpikyKernel(Eigen::Vector3f r, float h) {
 	float r_norm = r.norm();
-	if (r_norm <= h) {
-		return -45 / (M_PI * std::pow(h, 6.)) * std::pow(h - r_norm, 2.) * r;
+	if (1e-12 <= r_norm && r_norm <= h) {
+		return -45.f / (M_PI * std::pow(h, 6)) * std::pow(h - r_norm, 2) * r / r_norm;
 	} else {
-		return Eigen::Vector3f(0, 0, 0);
+		return Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 	}
 }

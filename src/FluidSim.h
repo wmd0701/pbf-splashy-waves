@@ -4,12 +4,12 @@
 
 #define TIME_STEP_SIZE 0.1f
 #define REST_DENSITY 0.1f
-#define EPSILON 0.00001f
+#define EPSILON 0.001f
 #define NEIGHBOURHOOD_RADIUS 0.5f
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 10
+#define PARTICLES_PER_CUBE_SIDE 5
 #define PARTICLE_RADIUS 0.5f
 
 
