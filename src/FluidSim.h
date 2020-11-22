@@ -3,15 +3,15 @@
 #include <vector>
 
 #define TIME_STEP_SIZE 0.1f
-#define REST_DENSITY 1000.f
-#define NEIGHBOURHOOD_RADIUS 3.f
+#define REST_DENSITY 1.f
+#define NEIGHBOURHOOD_RADIUS 5.f
 // user specified relaxation parameter (equation 11):
 // Bigger -> slower contraction of particles: influences the negative pressure inverse proportionally
 #define EPSILON 1.0f
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 5
+#define PARTICLES_PER_CUBE_SIDE 7
 #define PARTICLE_RADIUS 0.5f
 
 

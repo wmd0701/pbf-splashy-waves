@@ -38,6 +38,15 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../include)
 file(GLOB SRCFILES *.cpp)
 file(GLOB HFILES *.h)
 
+
+
 add_definitions(-DIGL_VIEWER_VIEWER_QUIET)
 add_executable(${PROJECT_NAME} ${SRCFILES} ${HFILES} ${LIBFILES} )
-target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui OpenMP::OpenMP_CXX)
+else()
+	target_link_libraries(${PROJECT_NAME} igl::core igl::opengl_glfw igl::opengl_glfw_imgui)
+endif()
+
+

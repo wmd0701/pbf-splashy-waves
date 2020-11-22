@@ -100,6 +100,7 @@ bool FluidSim::advance() {
 	const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
 	const float poly6kernel_delta_q = poly6Kernel(delta_q, NEIGHBOURHOOD_RADIUS);
 	// apply forces & predict position
+	#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		// apply gravity
 		velocities.row(i) += m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
@@ -109,10 +110,11 @@ bool FluidSim::advance() {
 	// TODO: find neighbours
 	
 	// newton iterations
-	int solverIterations = 3;
+	int solverIterations = 1;
 	for (int iter = 0; iter < solverIterations; ++iter) {
 
 		// calculate lambda_i (equation 11)
+		#pragma omp parallel for
 		for (int i = 0; i < n; ++i) {
 			// calculate density
 			densities[i] = 0.0f;
@@ -144,16 +146,18 @@ bool FluidSim::advance() {
 			lambdas[i] = - C_i / denominator; // equation (11)
 		}
 		// calculate delta_p_i, equation (12, rsp. 14 for tensile stability)
+		#pragma omp parallel for
 		for (int i = 0; i < n; ++i) {
 			Eigen::Vector3f delta_pi = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 			for (int j = 0; j < n; ++j) {
 				// equation 12, more efficient
-				//delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
+				delta_pi += (lambdas[i] + lambdas[j]) * gradSpikyKernel(positions->row(i) - positions->row(j), NEIGHBOURHOOD_RADIUS); // equation (12)
 
 				// equation 14, less efficient, but fixes tensile instability
-				const float k = 0.1f;
+				/*const float k = 0.1f;
 				float s_corr = -k * std::pow(poly6Kernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS) / poly6kernel_delta_q, 4); // equation (13)
 				delta_pi += (lambdas[i] + lambdas[j] + s_corr) * gradSpikyKernel(positionsStar->row(i) - positionsStar->row(j), NEIGHBOURHOOD_RADIUS); // equation (14)
+				*/
 			}
 			delta_pi *= 1 / REST_DENSITY;
 
@@ -179,6 +183,7 @@ bool FluidSim::advance() {
 
 	}
 
+	#pragma omp parallel for
 	for (int i = 0; i < n; ++i) {
 		// update velocity
 		velocities.row(i) = 1 / m_dt * (positionsStar->row(i) - positions->row(i));

@@ -2,7 +2,7 @@
 #define INSTANCEDVIEWER_H
 
 #include <string>
-#include "igl/opengl/glfw/Viewer.h";
+#include "igl/opengl/glfw/Viewer.h"
 
 class InstancedViewer
 {
