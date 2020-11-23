@@ -16,12 +16,12 @@
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 10
+#define PARTICLES_PER_CUBE_SIDE 2
 #define PARTICLE_RADIUS 0.5f
 
 #define halfBoundarySize 2.0f*PARTICLES_PER_CUBE_SIDE*PARTICLE_RADIUS
 
-#define ThreadCount 4
+#define ThreadCount 1
 
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
 class Barrier

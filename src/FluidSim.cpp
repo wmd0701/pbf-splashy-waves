@@ -130,7 +130,7 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 
 
 
-
+				/*
 				Eigen::RowVector3f contactPoint;
 				Eigen::Vector3f normal; // unit surface normal
 
@@ -142,12 +142,12 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 					fs->velocities.row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
 					fs->positionsStar->row(i) = contactPoint;
 				}
-
+				*/
 
 				// update position
 				fs->positionsStar->row(i) += delta_pi;
 
-				/*
+				
 				// An idea for even faster collision detection... directly project to valid position... but requires more solver iterations in order to not break stuff
 				const Eigen::RowVector3f& poss_i = fs->positionsStar->row(i);
 				if (poss_i.x() < fs->simBoundary[0]) (*fs->positionsStar)(i,0) = fs->simBoundary[0];
@@ -156,7 +156,7 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				if (poss_i.y() > fs->simBoundary[3]) (*fs->positionsStar)(i,1) = fs->simBoundary[3];
 				if (poss_i.z() < fs->simBoundary[4]) (*fs->positionsStar)(i,2) = fs->simBoundary[4];
 				if (poss_i.z() > fs->simBoundary[5]) (*fs->positionsStar)(i,2) = fs->simBoundary[5];
-				*/
+				
 			}
 		}
 
@@ -178,8 +178,9 @@ FluidSim::FluidSim() : Simulation() {
 void FluidSim::init() {
 	
 	simBoundary.resize(6);
-	simBoundary << -halfBoundarySize, 0.0f, -halfBoundarySize,
-		halfBoundarySize, 2.0f * halfBoundarySize, halfBoundarySize;
+	simBoundary << -halfBoundarySize, halfBoundarySize,
+					0.0f, 2.0f * halfBoundarySize,
+					-halfBoundarySize, halfBoundarySize;
 
 	// just draw a ground plane to satisfy igl... with no geometry it seems to crash!
 	// vertices
@@ -554,34 +555,34 @@ bool FluidSim::collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactP
 	bool collided = false;
 	normal = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 	contactPoint = Eigen::Vector3f(pos.x(), pos.y(), pos.z());
-	if (pos.y() < simBoundary[1])
-	{
-		normal.y() += 1.0f;
-		contactPoint.y() = simBoundary[1];
-		collided = true;
-	}
-	if (pos.y() > simBoundary[4])
-	{
-		normal.y() += -1.0f;
-		contactPoint.y() = simBoundary[4];
-		collided = true;
-	}
 	if (pos.x() < simBoundary[0])
 	{
 		normal.x() += 1.0f;
 		contactPoint.x() = simBoundary[0];
 		collided = true;
 	}
-	if (pos.x() > simBoundary[3])
+	if (pos.x() > simBoundary[1])
 	{
 		normal.x() += -1.0f;
-		contactPoint.x() = simBoundary[3];
+		contactPoint.x() = simBoundary[1];
 		collided = true;
 	}
-	if (pos.z() < simBoundary[2])
+	if (pos.y() < simBoundary[2])
+	{
+		normal.y() += 1.0f;
+		contactPoint.y() = simBoundary[2];
+		collided = true;
+	}
+	if (pos.y() > simBoundary[3])
+	{
+		normal.y() += -1.0f;
+		contactPoint.y() = simBoundary[3];
+		collided = true;
+	}
+	if (pos.z() < simBoundary[4])
 	{
 		normal.z() += 1.0f;
-		contactPoint.z() = simBoundary[2];
+		contactPoint.z() = simBoundary[4];
 		collided = true;
 	}
 	if (pos.z() > simBoundary[5])
