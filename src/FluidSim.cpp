@@ -25,14 +25,14 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 
 		for (int i = start_index; i < end_index; i++) {
 			// apply gravity
-			fs->velocities.row(i) += fs->m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
+			fs->velocities->row(i) += fs->m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
 			// predict position
-			fs->positionsStar->row(i) = fs->positions->row(i) + fs->m_dt * fs->velocities.row(i);
+			fs->positionsStar->row(i) = fs->positions->row(i) + fs->m_dt * fs->velocities->row(i);
 		}
 
 		for (int i = start_index; i < end_index; i++)
 		{
-			const Eigen::Vector3f& pos = fs->positions->row(i);
+			const Eigen::Vector3f& pos = fs->positionsStar->row(i);
 			int gridPosX = std::floor(fs->relPos * (pos.x() + fs->posOffsetxz));
 			int gridPosY = std::floor(fs->relPos * (pos.y() + fs->posOffsety));
 			int gridPosZ = std::floor(fs->relPos * (pos.z() + fs->posOffsetxz));
@@ -82,7 +82,7 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 						for (int n = bin_start; n < bin_end; n++) // for each neighbor
 						{
 							int n_index = fs->neighbor_bin_index[n];
-							const Eigen::RowVector3f& pos_j = fs->positions->row(n_index);
+							const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
 
 							if (n_index != i) // omit same particle
 							{
@@ -117,7 +117,7 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 						for (int n = bin_start; n < bin_end; n++) // for each neighbor
 						{
 							int n_index = fs->neighbor_bin_index[n];
-							const Eigen::RowVector3f& pos_j = fs->positions->row(n_index);
+							const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
 
 							if (n_index != i) // omit same particle
 							{
@@ -162,9 +162,31 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 
 		for (int i = start_index; i < end_index; ++i) {
 			// update velocity
-			fs->velocities.row(i) = 1 / fs->m_dt * (fs->positionsStar->row(i) - fs->positions->row(i));
-			// OPTIONAL: apply vorticity confinement & XSPH viscosity
+			fs->velocities->row(i) = 1 / fs->m_dt * (fs->positionsStar->row(i) - fs->positions->row(i));
+			
+			// OPTIONAL: apply vorticity confinement
 			// not for now
+
+			// OPTIONAL: apply XSPH viscosity, equation (17)
+			const float c = 0.01f;
+			fs->velocitiesStar->row(i) = fs->velocities->row(i);
+			int p_bin = fs->bin_index[i];
+			for (int z = -1; z < 2; z++)
+			{
+				for (int y = -1; y < 2; y++)
+				{
+					int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
+					int bin_start = fs->bin_prefix_sum[actual_bin];
+					int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
+					for (int n = bin_start; n < bin_end; n++) // for each neighbor
+					{
+						int n_index = fs->neighbor_bin_index[n];
+						const Eigen::Vector3f& v_ij= fs->velocities->row(n_index) - fs->velocities->row(i);
+						fs->velocitiesStar->row(i) += c * v_ij * fs->poly6Kernel(fs->positionsStar->row(i) - fs->positionsStar->row(n_index));
+					}
+				}
+			}
+
 		}
 
 		end_barrier.wait();
@@ -272,7 +294,10 @@ void FluidSim::resetMembers() {
 	colors2 = colors1;
 	positions2 = positions1;
 
-	velocities = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities1 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities2 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocitiesStar = &velocities1;
+	velocities = &velocities2;
 	densities = Eigen::VectorXf::Zero(n * n * n);
 	lambdas = Eigen::VectorXf::Zero(n * n * n);
 
@@ -292,10 +317,13 @@ void FluidSim::updateRenderGeometry() {
 	// just swap the pointers, no copying or even rewriting of all the data (it's done on the gpu)
 	auto temp = positions;
 	auto temp2 = renderColors;
+	auto temp3 = velocities;
 	positions = positionsStar;
 	positionsStar = temp;
 	renderColors = updateColors;
 	updateColors = temp2;
+	velocities = velocitiesStar;
+	velocitiesStar = temp3;
 }
 
 // Multithreaded advance method...

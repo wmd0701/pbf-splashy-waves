@@ -7,7 +7,7 @@
 #include <atomic>
 #include <condition_variable>
 
-#define TIME_STEP_SIZE 0.1f
+#define TIME_STEP_SIZE 0.08f
 #define REST_DENSITY 1.f
 #define NEIGHBOURHOOD_RADIUS 2.0f
 // user specified relaxation parameter (equation 11):
@@ -16,7 +16,7 @@
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 2
+#define PARTICLES_PER_CUBE_SIDE 10
 #define PARTICLE_RADIUS 0.5f
 
 #define halfBoundarySize 2.0f*PARTICLES_PER_CUBE_SIDE*PARTICLE_RADIUS
@@ -109,7 +109,8 @@ public:
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positionsStar;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions;
 
-	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocitiesStar;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocities;
 	Eigen::VectorXf densities;
 	Eigen::VectorXf lambdas;
 
@@ -123,6 +124,8 @@ public:
 	// Actual storage Vectors for positions and colors. Do not modify.
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions1;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions2;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities1;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities2;
 	Eigen::VectorXf colors1;
 	Eigen::VectorXf colors2;
 
