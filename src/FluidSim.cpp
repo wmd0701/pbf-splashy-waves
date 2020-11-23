@@ -128,27 +128,24 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				}
 				delta_pi *= 1 / REST_DENSITY;
 
-
-
-				/*
+				// boundary
 				Eigen::RowVector3f contactPoint;
 				Eigen::Vector3f normal; // unit surface normal
-
 				// TODO: DANGEROUS -> too high velocities will push particles out of border too far -> there are no grids for neighbors in those areas and program will crash
+				// a very basic solution could be to use a smaller time step
 				if (fs->collision(pos_i, contactPoint, normal)) {
 					//std::cout << "collision" << std::endl;
-					const Eigen::Vector3f velocity = fs->velocities.row(i);
+					const Eigen::Vector3f velocity = fs->velocities->row(i);
 					float penetrationDepth = (pos_i - contactPoint).norm();
-					fs->velocities.row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
+					fs->velocities->row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
 					fs->positionsStar->row(i) = contactPoint;
 				}
-				*/
 
 				// update position
 				fs->positionsStar->row(i) += delta_pi;
 
-				
 				// An idea for even faster collision detection... directly project to valid position... but requires more solver iterations in order to not break stuff
+				/*
 				const Eigen::RowVector3f& poss_i = fs->positionsStar->row(i);
 				const float bouncing = -0.8f;
 				if (poss_i.x() < fs->simBoundary[0]) { (*fs->positionsStar)(i, 0) = fs->simBoundary[0]; (*fs->velocities)(i, 0) *= bouncing; }
@@ -157,7 +154,7 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				if (poss_i.y() > fs->simBoundary[3]) { (*fs->positionsStar)(i, 1) = fs->simBoundary[3]; (*fs->velocities)(i, 1) *= bouncing; }
 				if (poss_i.z() < fs->simBoundary[4]) { (*fs->positionsStar)(i, 2) = fs->simBoundary[4]; (*fs->velocities)(i, 2) *= bouncing; }
 				if (poss_i.z() > fs->simBoundary[5]) { (*fs->positionsStar)(i, 2) = fs->simBoundary[5]; (*fs->velocities)(i, 2) *= bouncing; }
-				
+				*/
 			}
 		}
 
