@@ -150,12 +150,13 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				
 				// An idea for even faster collision detection... directly project to valid position... but requires more solver iterations in order to not break stuff
 				const Eigen::RowVector3f& poss_i = fs->positionsStar->row(i);
-				if (poss_i.x() < fs->simBoundary[0]) (*fs->positionsStar)(i,0) = fs->simBoundary[0];
-				if (poss_i.x() > fs->simBoundary[1]) (*fs->positionsStar)(i,0) = fs->simBoundary[1];
-				if (poss_i.y() < fs->simBoundary[2]) (*fs->positionsStar)(i,1) = fs->simBoundary[2];
-				if (poss_i.y() > fs->simBoundary[3]) (*fs->positionsStar)(i,1) = fs->simBoundary[3];
-				if (poss_i.z() < fs->simBoundary[4]) (*fs->positionsStar)(i,2) = fs->simBoundary[4];
-				if (poss_i.z() > fs->simBoundary[5]) (*fs->positionsStar)(i,2) = fs->simBoundary[5];
+				const float bouncing = -0.8f;
+				if (poss_i.x() < fs->simBoundary[0]) { (*fs->positionsStar)(i, 0) = fs->simBoundary[0]; (*fs->velocities)(i, 0) *= bouncing; }
+				if (poss_i.x() > fs->simBoundary[1]) { (*fs->positionsStar)(i, 0) = fs->simBoundary[1]; (*fs->velocities)(i, 0) *= bouncing; }
+				if (poss_i.y() < fs->simBoundary[2]) { (*fs->positionsStar)(i, 1) = fs->simBoundary[2]; (*fs->velocities)(i, 1) *= bouncing; }
+				if (poss_i.y() > fs->simBoundary[3]) { (*fs->positionsStar)(i, 1) = fs->simBoundary[3]; (*fs->velocities)(i, 1) *= bouncing; }
+				if (poss_i.z() < fs->simBoundary[4]) { (*fs->positionsStar)(i, 2) = fs->simBoundary[4]; (*fs->velocities)(i, 2) *= bouncing; }
+				if (poss_i.z() > fs->simBoundary[5]) { (*fs->positionsStar)(i, 2) = fs->simBoundary[5]; (*fs->velocities)(i, 2) *= bouncing; }
 				
 			}
 		}

@@ -7,7 +7,7 @@
 #include <atomic>
 #include <condition_variable>
 
-#define TIME_STEP_SIZE 0.08f
+#define TIME_STEP_SIZE 0.05f
 #define REST_DENSITY 1.f
 #define NEIGHBOURHOOD_RADIUS 2.0f
 // user specified relaxation parameter (equation 11):
@@ -16,7 +16,7 @@
 
 // neighbourhood_radius and particle_radius must be the same.
 // else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 10
+#define PARTICLES_PER_CUBE_SIDE 12
 #define PARTICLE_RADIUS 0.5f
 
 #define halfBoundarySize 2.0f*PARTICLES_PER_CUBE_SIDE*PARTICLE_RADIUS
