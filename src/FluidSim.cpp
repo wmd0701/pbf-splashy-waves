@@ -233,7 +233,7 @@ void FluidSim::init() {
 	// The "fast" instanced viewer needs to be initialized once opengl is initialized.
 	// There is no other point for unobtrusive initialization that I found but in renderRenderGeometry.
 	initializedInstancedViewer = false;
-	p_iviewer = new InstancedViewer(positions, renderColors);
+	p_iviewer = new InstancedViewer(positions, renderColors, NUM_FLUID_PARTICLES);
 
 
 
@@ -539,7 +539,8 @@ void FluidSim::renderRenderGeometry(
 	}
 
 	// only render the first NUM_FLUID_PARTICLES rows from positions. The rows left are boundary particles.
-	p_iviewer->updatePositions(positions, NUM_FLUID_PARTICLES);
+	//p_iviewer->updatePositions(&Eigen::Matrix<float, -1, -1, Eigen::RowMajor>(positions->topRows(NUM_FLUID_PARTICLES)));
+	p_iviewer->updatePositions(positions);
 	//p_iviewer->updateColors(renderColors);
 	p_iviewer->drawInstanced();
 }

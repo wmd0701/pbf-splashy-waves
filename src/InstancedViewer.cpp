@@ -1,6 +1,7 @@
 #include "InstancedViewer.h"
 
-InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, Eigen::VectorXf* colors)
+// parameter toprows: only render the first toprows particles. The particles left are boundary(ghost) particles
+InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, Eigen::VectorXf* colors, unsigned int toprows)
 {
 	dummyColor.resize(1);
 	dummyColor[0] = 0.5f;
@@ -18,19 +19,22 @@ InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* 
 	}
 	else 
 	{
-		m_particleCount = positions->rows();
+		// m_particleCount = positions->rows();
+		m_particleCount = toprows;
 		p_particlePositions = positions;
 
 		if (colors != nullptr)
 		{
-			if (colors->size() == m_particleCount)
+			//if (colors->size() == m_particleCount)
+			if (colors->size() <= m_particleCount)
 			{
 				perInstanceColor = true;
 				p_particleColors = colors;
 			}
 			else
 			{
-				std::cout << "Instanced Viewer requires exactly one float value as color per particle.\n";
+				//std::cout << "Instanced Viewer requires exactly one float value as color per particle.\n";
+				std::cout << "Less colors than needed.\n";
 				perInstanceColor = false;
 				dummyColor = Eigen::VectorXf::Zero(m_particleCount);
 				p_particleColors = &dummyColor;
@@ -226,6 +230,14 @@ void InstancedViewer::updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMaj
 	glBindBuffer(GL_ARRAY_BUFFER, m_positionsVBO);
 	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->size(), positions->data());
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->topRows(toprows).size(), positions->topRows(toprows).data());
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+// keeping the number of particles the same, just update their positions only.
+void InstancedViewer::updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions)
+{
+	glBindBuffer(GL_ARRAY_BUFFER, m_positionsVBO);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->size(), positions->data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

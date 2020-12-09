@@ -127,6 +127,6 @@ void DummySim::renderRenderGeometry(
 		initializedInstancedViewer = true; 
 	}
 
-	p_iviewer->updatePositions(renderPositions, 1);
+	p_iviewer->updatePositions(renderPositions);
 	p_iviewer->drawInstanced();
 }

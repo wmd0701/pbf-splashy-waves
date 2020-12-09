@@ -10,7 +10,7 @@ public:
 	// Initialize a instanced viewer with a (x,3) matrix storing positions of the particles to draw.
 	// and optionally a x-valued vector storing a color value (as float). x must be the same
 	// the given pointers must remain valid and the values may not change during rendering!
-	InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, Eigen::VectorXf* colors = NULL);
+	InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, Eigen::VectorXf* colors = NULL, unsigned int toprows=0);
 	~InstancedViewer() {
 		glDeleteShader(m_vertexShader);
 		glDeleteShader(m_fragmentShader);
@@ -23,6 +23,7 @@ public:
 	void drawInstanced();
 
 	// Change the positions of the particles.
+	void updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions);
 	void updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, unsigned int toprows);
 
 	// coloring can be uniform for all particles or per Instance.
