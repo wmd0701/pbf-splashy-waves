@@ -269,20 +269,24 @@ void FluidSim::resetMembers() {
 	updateColors = &colors1;
 	renderColors = &colors2;
 
-	float particleDiameter = 2.0f * PARTICLE_RADIUS;
-	float positionOffset = (n * particleDiameter) / 2.0f + PARTICLE_RADIUS;
+	// float particleDiameter = 2.0f * PARTICLE_RADIUS;
+	// float positionOffset = (n * particleDiameter) / 2.0f + PARTICLE_RADIUS;
+	float positionOffset = ((n - 1) * PARTICLE_DISTANCE) / 2.0f;
 	float x = -positionOffset;
 	for (int i = 0; i < n; i++)
 	{
-		x += particleDiameter;
+		// x += particleDiameter;
+		x += PARTICLE_DISTANCE;
 		float y = positionOffset;
 		for (int j = 0; j < n; j++)
 		{
-			y += particleDiameter;
+			// y += particleDiameter;
+			y += PARTICLE_DISTANCE;
 			float z = -positionOffset;
 			for (int k = 0; k < n; k++)
 			{
-				z += particleDiameter;
+				// z += particleDiameter;
+				z += PARTICLE_DISTANCE;
 				positions1.row(i * n * n + j * n + k) << x, y, z;
 				colors1[i * n * n + j * n + k] = (float)(i * n * n + j * n) / (float)(n * n * n);
 			}

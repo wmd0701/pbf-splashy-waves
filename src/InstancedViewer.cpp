@@ -20,7 +20,7 @@ InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* 
 	else 
 	{
 		// m_particleCount = positions->rows();
-		m_particleCount = toprows;
+		m_particleCount = toprows == 0? positions->rows() : toprows;
 		p_particlePositions = positions;
 
 		if (colors != nullptr)

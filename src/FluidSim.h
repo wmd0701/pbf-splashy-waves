@@ -9,18 +9,23 @@
 
 #define TIME_STEP_SIZE 0.05f
 #define REST_DENSITY 1.f
-#define NEIGHBOURHOOD_RADIUS 2.0f
+
 // user specified relaxation parameter (equation 11):
 // Bigger -> slower contraction of particles: influences the negative pressure inverse proportionally
 #define EPSILON 1.0f
 
-// neighbourhood_radius and particle_radius must be the same.
-// else the visualization and grid generation generates particles too close
-#define PARTICLES_PER_CUBE_SIDE 12
-#define PARTICLE_RADIUS 0.5f
-#define NUM_FLUID_PARTICLES PARTICLES_PER_CUBE_SIDE*PARTICLES_PER_CUBE_SIDE*PARTICLES_PER_CUBE_SIDE
+// taking idea from http://www.unige.ch/math/folks/sutti/SPH_2019.pdf
+// kernel smoothing length = 2.4 * distance between two neighboring particles
+// particle radius is just for rendering particles
+#define PARTICLE_DISTANCE 1.0f
+#define PARTICLE_RADIUS 0.4f
+#define NEIGHBOURHOOD_RADIUS 2.4f * PARTICLE_DISTANCE
 
-#define halfBoundarySize 2.0f*PARTICLES_PER_CUBE_SIDE*PARTICLE_RADIUS
+#define PARTICLES_PER_CUBE_SIDE 12
+#define NUM_FLUID_PARTICLES PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE
+
+// #define halfBoundarySize 0.8f * PARTICLES_PER_CUBE_SIDE * PARTICLE_DISTANCE    // a tighter fluid container
+#define halfBoundarySize PARTICLES_PER_CUBE_SIDE * PARTICLE_DISTANCE
 
 #define ThreadCount 1
 
@@ -75,10 +80,13 @@ public:
 	InstancedViewer* p_iviewer;
 
 	//NeighborhoodSearch member variables. A loot and very badly named
-	const int envWidth = 2.0f * halfBoundarySize + NEIGHBOURHOOD_RADIUS * 6.0f; // TODO: border of 3! cells that are "useless" reduce to 1 when properly computing collision!
+	// NEIGHBOURHOOD_RADIUS * 4.0f for safety: no fluid particle gets into the boundary cells
+	const int envWidth = 2.0f * halfBoundarySize + NEIGHBOURHOOD_RADIUS * 4.0f;
+	// gridWidth: number of cells along any axis. !!! It is number of cells, not width of cell
+	// width of cell is intuitively equal to NEIGHBOURHOOD_RADIUS
 	const int gridWidth = std::ceil(envWidth / NEIGHBOURHOOD_RADIUS);
 	const float relPos = gridWidth / (float)envWidth;
-	const float posOffsety = NEIGHBOURHOOD_RADIUS * 3.0f;
+	const float posOffsety = NEIGHBOURHOOD_RADIUS * 2.0f;
 	const float posOffsetxz = envWidth / 2.0f;
 	std::vector<unsigned int> bin_index;
 	std::vector<unsigned int> bin_sub_index;
