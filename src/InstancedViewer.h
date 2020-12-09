@@ -23,7 +23,7 @@ public:
 	void drawInstanced();
 
 	// Change the positions of the particles.
-	void updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions);
+	void updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, unsigned int toprows);
 
 	// coloring can be uniform for all particles or per Instance.
 	void updateColors(Eigen::VectorXf* colors);

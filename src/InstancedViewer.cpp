@@ -221,10 +221,11 @@ void InstancedViewer::drawInstanced()
 }
 
 // keeping the number of particles the same, just update their positions only.
-void InstancedViewer::updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions)
+void InstancedViewer::updatePositions(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* positions, unsigned int toprows)
 {
 	glBindBuffer(GL_ARRAY_BUFFER, m_positionsVBO);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->size(), positions->data());
+	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->size(), positions->data());
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float) * positions->topRows(toprows).size(), positions->topRows(toprows).data());
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 

@@ -18,6 +18,7 @@
 // else the visualization and grid generation generates particles too close
 #define PARTICLES_PER_CUBE_SIDE 12
 #define PARTICLE_RADIUS 0.5f
+#define NUM_FLUID_PARTICLES PARTICLES_PER_CUBE_SIDE*PARTICLES_PER_CUBE_SIDE*PARTICLES_PER_CUBE_SIDE
 
 #define halfBoundarySize 2.0f*PARTICLES_PER_CUBE_SIDE*PARTICLE_RADIUS
 

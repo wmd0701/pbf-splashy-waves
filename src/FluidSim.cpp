@@ -238,16 +238,16 @@ void FluidSim::init() {
 
 
 	// for threaded advance, sets range for each thread and starts the "pool"
-	indices = std::vector<int>(ThreadCount + 1, PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE);
+	indices = std::vector<int>(ThreadCount + 1, NUM_FLUID_PARTICLES);
 	indices[0] = 0;
-	int amount = PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE / ThreadCount; // work per thread
+	int amount = NUM_FLUID_PARTICLES / ThreadCount; // work per thread
 	int upto = amount;
 	for (int i = 1; i < indices.size() - 1; i++)
 	{
 		indices[i] = upto;
 		upto += amount;
 	}
-	indices[indices.size() - 1] = PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE;
+	indices[indices.size() - 1] = NUM_FLUID_PARTICLES;
 
 	for (int i = 0; i < ThreadCount; i++)
 	{
@@ -301,14 +301,14 @@ void FluidSim::resetMembers() {
 
 	// for fast neighborhood search
 	int totalGridCells = gridWidth * gridWidth * gridWidth;
-	bin_index = std::vector<unsigned int>(PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE);
-	bin_sub_index = std::vector<unsigned int>(PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE, 0);
+	bin_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES);
+	bin_sub_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES, 0);
 	//bin_count = std::vector<unsigned int>(totalGridCells, 0);
 	bin_count = std::vector<std::atomic<unsigned int>>(totalGridCells);
 	for (int i = 0; i < totalGridCells; i++) bin_count[i].store(0);
 	bin_prefix_sum = std::vector<unsigned int>(totalGridCells, 0);
 	// actually stores the neighbor indices in sorted grid
-	neighbor_bin_index = std::vector<unsigned int>(PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE);
+	neighbor_bin_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES);
 }
 
 void FluidSim::updateRenderGeometry() {
@@ -538,7 +538,8 @@ void FluidSim::renderRenderGeometry(
 		initializedInstancedViewer = true;
 	}
 
-	p_iviewer->updatePositions(positions);
+	// only render the first NUM_FLUID_PARTICLES rows from positions. The rows left are boundary particles.
+	p_iviewer->updatePositions(positions, NUM_FLUID_PARTICLES);
 	//p_iviewer->updateColors(renderColors);
 	p_iviewer->drawInstanced();
 }
