@@ -7,7 +7,7 @@
 #include <atomic>
 #include <condition_variable>
 
-#define TIME_STEP_SIZE 0.05f
+#define TIME_STEP_SIZE 0.04f
 #define REST_DENSITY 1.f
 
 // user specified relaxation parameter (equation 11):
@@ -20,14 +20,15 @@
 #define PARTICLE_DISTANCE 1.0f
 #define PARTICLE_RADIUS 0.4f
 #define NEIGHBOURHOOD_RADIUS 2.4f * PARTICLE_DISTANCE
+#define BOUNDARY_PARTICLE_DISTANCE 0.8f
 
-#define PARTICLES_PER_CUBE_SIDE 12
+#define PARTICLES_PER_CUBE_SIDE 8
 #define NUM_FLUID_PARTICLES PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE
 
-// #define halfBoundarySize 0.8f * PARTICLES_PER_CUBE_SIDE * PARTICLE_DISTANCE    // a tighter fluid container
-#define halfBoundarySize PARTICLES_PER_CUBE_SIDE * PARTICLE_DISTANCE
+#define BOUNDARY_PARTICLE_COLOR 1.0f
 
-#define ThreadCount 1
+#define RENDER_ONLY_FLUID true
+#define ThreadCount 10
 
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
 class Barrier
@@ -79,9 +80,29 @@ public:
 	Eigen::VectorXf simBoundary;
 	InstancedViewer* p_iviewer;
 
+	// a tighter boundary
+	const float halfBoundarySize = 0.8f * PARTICLES_PER_CUBE_SIDE * PARTICLE_DISTANCE;
+	
+	// number of boundary particles along x/z axis is 2n + 5
+	const int halfBoundaryParticle = std::ceil(halfBoundarySize / BOUNDARY_PARTICLE_DISTANCE);
+	const int BOUNDARY_PARTICLES_XZ = 2 * halfBoundaryParticle + 5;
+	
+	// both setting the boundary to be high (i.e. BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE * 2)
+	// and setting the boundary to be low   (i.e. BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE / 3)
+	// would work. If setting the boundary to be high, use a small time step to make sure no fluid particle
+	// get sticked to the boundary wall
+	const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE * 2;
+	
+	// 3 layers of boundary particles
+	// totoal number of boundary particles is 6*XZ*Y + 6*(XZ-6)*Y + 3*(XZ-6)^2
+	const int NUM_BOUNDARY_PARTICLES =  6 * BOUNDARY_PARTICLES_XZ * BOUNDARY_PARTICLES_Y +
+										6 * (BOUNDARY_PARTICLES_XZ - 6) * BOUNDARY_PARTICLES_Y +
+										3 * (BOUNDARY_PARTICLES_XZ - 6) * (BOUNDARY_PARTICLES_XZ - 6);
+	const int NUM_ALL_PARTICLES = NUM_FLUID_PARTICLES + NUM_BOUNDARY_PARTICLES;
+
 	//NeighborhoodSearch member variables. A loot and very badly named
-	// NEIGHBOURHOOD_RADIUS * 4.0f for safety: no fluid particle gets into the boundary cells
-	const int envWidth = 2.0f * halfBoundarySize + NEIGHBOURHOOD_RADIUS * 4.0f;
+	// NEIGHBOURHOOD_RADIUS * 6.0f for safety: no fluid particle gets into the boundary cells
+	const int envWidth = 2.0f * halfBoundarySize + 6.0f * NEIGHBOURHOOD_RADIUS;
 	// gridWidth: number of cells along any axis. !!! It is number of cells, not width of cell
 	// width of cell is intuitively equal to NEIGHBOURHOOD_RADIUS
 	const int gridWidth = std::ceil(envWidth / NEIGHBOURHOOD_RADIUS);

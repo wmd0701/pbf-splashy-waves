@@ -24,6 +24,9 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 		// apply forces & predict position
 
 		for (int i = start_index; i < end_index; i++) {
+			// do not move boundary particles
+			if (i >= NUM_FLUID_PARTICLES) continue;
+
 			// apply gravity
 			fs->velocities->row(i) += fs->m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
 			// predict position
@@ -106,22 +109,26 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 
 
 				// calculate delta_p_i, equation (12, rsp. 14 for tensile stability)
+				// the following calculation is not needed for boundary particles, however, lambdas must be calculated
+				// for boundary particles, because fluid particles need information of lambdas of boundary particles
 				Eigen::Vector3f delta_pi = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
-				for (int z = -1; z < 2; z++)
-				{
-					for (int y = -1; y < 2; y++)
+				if (i < NUM_FLUID_PARTICLES) {
+					for (int z = -1; z < 2; z++)
 					{
-						int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
-						int bin_start = fs->bin_prefix_sum[actual_bin];
-						int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
-						for (int n = bin_start; n < bin_end; n++) // for each neighbor
+						for (int y = -1; y < 2; y++)
 						{
-							int n_index = fs->neighbor_bin_index[n];
-							const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
-
-							if (n_index != i) // omit same particle
+							int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
+							int bin_start = fs->bin_prefix_sum[actual_bin];
+							int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
+							for (int n = bin_start; n < bin_end; n++) // for each neighbor
 							{
-								delta_pi += (fs->lambdas[i] + fs->lambdas[n_index]) * fs->gradSpikyKernel(pos_i - pos_j); // equation (12)
+								int n_index = fs->neighbor_bin_index[n];
+								const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
+
+								if (n_index != i) // omit same particle
+								{
+									delta_pi += (fs->lambdas[i] + fs->lambdas[n_index]) * fs->gradSpikyKernel(pos_i - pos_j); // equation (12)
+								}
 							}
 						}
 					}
@@ -129,20 +136,29 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				delta_pi *= 1 / REST_DENSITY;
 
 				// boundary
-				Eigen::RowVector3f contactPoint;
-				Eigen::Vector3f normal; // unit surface normal
-				// TODO: DANGEROUS -> too high velocities will push particles out of border too far -> there are no grids for neighbors in those areas and program will crash
-				// a very basic solution could be to use a smaller time step
-				if (fs->collision(pos_i, contactPoint, normal)) {
-					//std::cout << "collision" << std::endl;
-					const Eigen::Vector3f velocity = fs->velocities->row(i);
-					float penetrationDepth = (pos_i - contactPoint).norm();
-					fs->velocities->row(i) = velocity - normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
-					fs->positionsStar->row(i) = contactPoint;
+				// do not move boundary particles
+				if (i < NUM_FLUID_PARTICLES) {
+					Eigen::RowVector3f contactPoint;
+					Eigen::Vector3f normal; // unit surface normal
+					const float damping = 0.8f;
+					// TODO: DANGEROUS -> too high velocities will push particles out of border too far -> there are no grids for neighbors in those areas and program will crash
+					// a very basic solution could be to use a smaller time step
+					if (fs->collision(pos_i, contactPoint, normal)) {
+						//std::cout << "collision" << std::endl;
+						const Eigen::Vector3f velocity = fs->velocities->row(i);
+						float penetrationDepth = (pos_i - contactPoint).norm();
+						fs->positionsStar->row(i) = contactPoint;
+
+						// the following line is useless, since velocities will be recomputed later using positions
+						//fs->velocities->row(i) = velocity - damping * normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
+						
+					}
 				}
 
 				// update position
-				fs->positionsStar->row(i) += delta_pi;
+				// do not move boundary particles
+				if(i < NUM_FLUID_PARTICLES)
+					fs->positionsStar->row(i) += delta_pi;
 
 				// An idea for even faster collision detection... directly project to valid position... but requires more solver iterations in order to not break stuff
 				/*
@@ -159,6 +175,9 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 		}
 
 		for (int i = start_index; i < end_index; ++i) {
+			// do not move boundary particles
+			if (i >= NUM_FLUID_PARTICLES) continue;
+
 			// update velocity
 			fs->velocities->row(i) = 1 / fs->m_dt * (fs->positionsStar->row(i) - fs->positions->row(i));
 			
@@ -233,21 +252,29 @@ void FluidSim::init() {
 	// The "fast" instanced viewer needs to be initialized once opengl is initialized.
 	// There is no other point for unobtrusive initialization that I found but in renderRenderGeometry.
 	initializedInstancedViewer = false;
-	p_iviewer = new InstancedViewer(positions, renderColors, NUM_FLUID_PARTICLES);
-
-
-
+	// p_iviewer = new InstancedViewer(positions, renderColors);
+	
+	if(RENDER_ONLY_FLUID)
+		// only render fluid particles
+		p_iviewer = new InstancedViewer(positions, renderColors, NUM_FLUID_PARTICLES);
+	else
+		// render all particles, i.e. both fluid particles and boundary particles
+		p_iviewer = new InstancedViewer(positions, renderColors);
+	
 	// for threaded advance, sets range for each thread and starts the "pool"
-	indices = std::vector<int>(ThreadCount + 1, NUM_FLUID_PARTICLES);
+	// indices = std::vector<int>(ThreadCount + 1, NUM_FLUID_PARTICLES);
+	indices = std::vector<int>(ThreadCount + 1, NUM_ALL_PARTICLES);
 	indices[0] = 0;
-	int amount = NUM_FLUID_PARTICLES / ThreadCount; // work per thread
+	// int amount = NUM_FLUID_PARTICLES / ThreadCount; // work per thread
+	int amount = NUM_ALL_PARTICLES / ThreadCount; // work per thread
 	int upto = amount;
 	for (int i = 1; i < indices.size() - 1; i++)
 	{
 		indices[i] = upto;
 		upto += amount;
 	}
-	indices[indices.size() - 1] = NUM_FLUID_PARTICLES;
+	// indices[indices.size() - 1] = NUM_FLUID_PARTICLES;
+	indices[indices.size() - 1] = NUM_ALL_PARTICLES;
 
 	for (int i = 0; i < ThreadCount; i++)
 	{
@@ -256,63 +283,123 @@ void FluidSim::init() {
 }
 
 void FluidSim::resetMembers() {
+	int n = PARTICLES_PER_CUBE_SIDE;
 
 	// repopulate the particle cube, reset colors and all other particle data.
-	int n = PARTICLES_PER_CUBE_SIDE;
-	positions1.resize(n * n * n, 3);
-	positions2.resize(n * n * n, 3);
+	positions1.resize(NUM_ALL_PARTICLES, 3);
+	positions2.resize(NUM_ALL_PARTICLES, 3);
 	positionsStar = &positions1;
 	positions = &positions2;
 
-	colors1.resize(n * n * n);
-	colors2.resize(n * n * n);
+	colors1.resize(NUM_ALL_PARTICLES);
+	colors2.resize(NUM_ALL_PARTICLES);
 	updateColors = &colors1;
 	renderColors = &colors2;
 
-	// float particleDiameter = 2.0f * PARTICLE_RADIUS;
-	// float positionOffset = (n * particleDiameter) / 2.0f + PARTICLE_RADIUS;
-	float positionOffset = ((n - 1) * PARTICLE_DISTANCE) / 2.0f;
-	float x = -positionOffset;
+	int total_particles = 0;
+	
+	// initialize fluid particles
+	float positionOffset = ((n - 1) * PARTICLE_DISTANCE) / 2.0f + PARTICLE_DISTANCE;
+	float x = -positionOffset, y, z;
 	for (int i = 0; i < n; i++)
 	{
-		// x += particleDiameter;
 		x += PARTICLE_DISTANCE;
-		float y = positionOffset;
+		y = positionOffset;
 		for (int j = 0; j < n; j++)
 		{
-			// y += particleDiameter;
 			y += PARTICLE_DISTANCE;
-			float z = -positionOffset;
+			z = -positionOffset;
 			for (int k = 0; k < n; k++)
 			{
-				// z += particleDiameter;
 				z += PARTICLE_DISTANCE;
 				positions1.row(i * n * n + j * n + k) << x, y, z;
 				colors1[i * n * n + j * n + k] = (float)(i * n * n + j * n) / (float)(n * n * n);
+				total_particles++;
 			}
 		}
 	}
+	if (total_particles != NUM_FLUID_PARTICLES) 
+		std::cout << "mistake in number of fluid particles!\n";
 
+	// intialize boundary particles
+	float xs[] = {  -(halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE,
+					-(halfBoundaryParticle + 1) * BOUNDARY_PARTICLE_DISTANCE,
+					-(halfBoundaryParticle ) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle ) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle + 1) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE };
+	for (float x_ : xs) {
+		y = -BOUNDARY_PARTICLE_DISTANCE;
+		for (int i = 0; i < BOUNDARY_PARTICLES_Y; i++) {
+			z = -(halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE;
+			for (int j = 0; j < BOUNDARY_PARTICLES_XZ; j++) {
+				positions1.row(total_particles) << x_, y, z;
+				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
+				total_particles++;
+				z += BOUNDARY_PARTICLE_DISTANCE;
+			}
+			y += BOUNDARY_PARTICLE_DISTANCE;
+		}
+	}
+
+	float zs[] = {	-(halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE,
+					-(halfBoundaryParticle + 1) * BOUNDARY_PARTICLE_DISTANCE,
+					-(halfBoundaryParticle ) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle ) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle + 1) * BOUNDARY_PARTICLE_DISTANCE,
+					 (halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE };
+	for (float z_ : zs) {
+		y = -BOUNDARY_PARTICLE_DISTANCE;
+		for (int i = 0; i < BOUNDARY_PARTICLES_Y; i++) {
+			x = -(halfBoundaryParticle - 1) * BOUNDARY_PARTICLE_DISTANCE;
+			for (int j = 0; j < BOUNDARY_PARTICLES_XZ - 6; j++) {
+				positions1.row(total_particles) << x, y, z_;
+				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
+				total_particles++;
+				x += BOUNDARY_PARTICLE_DISTANCE;
+			}
+			y += BOUNDARY_PARTICLE_DISTANCE;
+		}
+	}
+	
+	float ys[] = { -2 * BOUNDARY_PARTICLE_DISTANCE, -BOUNDARY_PARTICLE_DISTANCE, 0 };
+	for (float y_ : ys) {
+		z = -(halfBoundaryParticle - 1) * BOUNDARY_PARTICLE_DISTANCE;
+		for (int i = 0; i < BOUNDARY_PARTICLES_XZ - 6; i++) {
+			x = -(halfBoundaryParticle - 1) * BOUNDARY_PARTICLE_DISTANCE;
+			for (int j = 0; j < BOUNDARY_PARTICLES_XZ - 6; j++) {
+				positions1.row(total_particles) << x, y_, z;
+				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
+				total_particles++;
+				x += BOUNDARY_PARTICLE_DISTANCE;
+			}
+			z += BOUNDARY_PARTICLE_DISTANCE;
+		}
+	}
+
+	if (total_particles != NUM_ALL_PARTICLES)
+		std::cout << "\n!!!mistake in number of boundary particles!!!\n";
+	
 	colors2 = colors1;
 	positions2 = positions1;
 
-	velocities1 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
-	velocities2 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(n * n * n, 3);
+	velocities1 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(NUM_ALL_PARTICLES, 3);
+	velocities2 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(NUM_ALL_PARTICLES, 3);
 	velocitiesStar = &velocities1;
 	velocities = &velocities2;
-	densities = Eigen::VectorXf::Zero(n * n * n);
-	lambdas = Eigen::VectorXf::Zero(n * n * n);
+	densities = Eigen::VectorXf::Zero(NUM_ALL_PARTICLES);
+	lambdas = Eigen::VectorXf::Zero(NUM_ALL_PARTICLES);
 
 	// for fast neighborhood search
 	int totalGridCells = gridWidth * gridWidth * gridWidth;
-	bin_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES);
-	bin_sub_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES, 0);
+	bin_index = std::vector<unsigned int>(NUM_ALL_PARTICLES);
+	bin_sub_index = std::vector<unsigned int>(NUM_ALL_PARTICLES, 0);
 	//bin_count = std::vector<unsigned int>(totalGridCells, 0);
 	bin_count = std::vector<std::atomic<unsigned int>>(totalGridCells);
 	for (int i = 0; i < totalGridCells; i++) bin_count[i].store(0);
 	bin_prefix_sum = std::vector<unsigned int>(totalGridCells, 0);
 	// actually stores the neighbor indices in sorted grid
-	neighbor_bin_index = std::vector<unsigned int>(NUM_FLUID_PARTICLES);
+	neighbor_bin_index = std::vector<unsigned int>(NUM_ALL_PARTICLES);
 }
 
 void FluidSim::updateRenderGeometry() {
@@ -354,6 +441,9 @@ bool FluidSim::advance()
 	// advance step
 	m_step++;
 	m_time += m_dt;
+
+	// TODO: move boundary and boundary particles periodically
+
 	return false;
 }
 // Single Threaded Advance method
@@ -542,9 +632,13 @@ void FluidSim::renderRenderGeometry(
 		initializedInstancedViewer = true;
 	}
 
-	// only render the first NUM_FLUID_PARTICLES rows from positions. The rows left are boundary particles.
-	//p_iviewer->updatePositions(&Eigen::Matrix<float, -1, -1, Eigen::RowMajor>(positions->topRows(NUM_FLUID_PARTICLES)));
+	
+	// update positions of all particles, i.e. fluid particles and boundary particles
 	p_iviewer->updatePositions(positions);
+
+	// update positions only of fluid particles
+	//p_iviewer->updatePositions(positions, NUM_FLUID_PARTICLES);
+
 	//p_iviewer->updateColors(renderColors);
 	p_iviewer->drawInstanced();
 }
