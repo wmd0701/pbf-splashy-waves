@@ -30,6 +30,10 @@
 #define RENDER_ONLY_FLUID true
 #define ThreadCount 10
 
+#define MOVING_BOUNDARY true
+#define AMPLITUDE 1.5f
+#define PERIOD 4.0f
+
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
 class Barrier
 {
@@ -78,6 +82,7 @@ public:
 
 	// simulation boundary AABB [minx,miny,minz, maxx,maxy,maxz] (y is up)
 	Eigen::VectorXf simBoundary;
+	Eigen::VectorXf simBoundary_init;
 	InstancedViewer* p_iviewer;
 
 	// a tighter boundary
@@ -91,6 +96,7 @@ public:
 	// and setting the boundary to be low   (i.e. BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE / 3)
 	// would work. If setting the boundary to be high, use a small time step to make sure no fluid particle
 	// get sticked to the boundary wall
+	// const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE / 3;
 	const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE * 2;
 	
 	// 3 layers of boundary particles
@@ -108,7 +114,10 @@ public:
 	const int gridWidth = std::ceil(envWidth / NEIGHBOURHOOD_RADIUS);
 	const float relPos = gridWidth / (float)envWidth;
 	const float posOffsety = NEIGHBOURHOOD_RADIUS * 2.0f;
-	const float posOffsetxz = envWidth / 2.0f;
+	const float posOffsetz = envWidth / 2.0f;
+	const float posOffsetx_init = -envWidth / 2.0f;
+	// posOffsetx is no more constant, since it changes as the boundary position changes
+	float posOffsetx = -envWidth / 2.0f;	  
 	std::vector<unsigned int> bin_index;
 	std::vector<unsigned int> bin_sub_index;
 	//std::vector<unsigned int> bin_count;
@@ -126,6 +135,7 @@ public:
 	const float pow_h_6_2 = -45.f / (M_PI * std::pow(NEIGHBOURHOOD_RADIUS, 6));
 
 	float m_dt;
+	float elapsed_t;
 
 	/* PARTICLE DATA
 	 * positions (and colors) are double buffered,
@@ -154,6 +164,7 @@ public:
 	// Actual storage Vectors for positions and colors. Do not modify.
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions1;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> positions2;
+	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> boundary_init_positions;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities1;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor> velocities2;
 	Eigen::VectorXf colors1;
@@ -169,6 +180,6 @@ public:
 	float poly6Kernel(Eigen::Vector3f distance);
 	float spikyKernel(Eigen::Vector3f distance);
 	Eigen::Vector3f gradSpikyKernel(Eigen::Vector3f r);
-	bool collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactPoint, Eigen::Vector3f& normal);
+	bool collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactPoint);
 };
 #endif

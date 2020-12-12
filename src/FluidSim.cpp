@@ -36,9 +36,9 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 		for (int i = start_index; i < end_index; i++)
 		{
 			const Eigen::Vector3f& pos = fs->positionsStar->row(i);
-			int gridPosX = std::floor(fs->relPos * (pos.x() + fs->posOffsetxz));
+			int gridPosX = std::floor(fs->relPos * (pos.x() - fs->posOffsetx));
 			int gridPosY = std::floor(fs->relPos * (pos.y() + fs->posOffsety));
-			int gridPosZ = std::floor(fs->relPos * (pos.z() + fs->posOffsetxz));
+			int gridPosZ = std::floor(fs->relPos * (pos.z() + fs->posOffsetz));
 			int entryPos = gridPosX + gridPosY * fs->gridWidth + gridPosZ * fs->gridWidth * fs->gridWidth;
 			fs->bin_index[i] = entryPos;
 			fs->bin_sub_index[i] = fs->bin_count[entryPos].fetch_add(1); // out of range value!!!!
@@ -139,19 +139,12 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				// do not move boundary particles
 				if (i < NUM_FLUID_PARTICLES) {
 					Eigen::RowVector3f contactPoint;
-					Eigen::Vector3f normal; // unit surface normal
-					const float damping = 0.8f;
 					// TODO: DANGEROUS -> too high velocities will push particles out of border too far -> there are no grids for neighbors in those areas and program will crash
 					// a very basic solution could be to use a smaller time step
-					if (fs->collision(pos_i, contactPoint, normal)) {
+					if (fs->collision(pos_i, contactPoint)) {
 						//std::cout << "collision" << std::endl;
-						const Eigen::Vector3f velocity = fs->velocities->row(i);
-						float penetrationDepth = (pos_i - contactPoint).norm();
-						fs->positionsStar->row(i) = contactPoint;
 
-						// the following line is useless, since velocities will be recomputed later using positions
-						//fs->velocities->row(i) = velocity - damping * normal * (1 + 0.5f * penetrationDepth / (fs->m_dt * velocity.norm())) * velocity.dot(normal);
-						
+						fs->positionsStar->row(i) = contactPoint;						
 					}
 				}
 
@@ -215,12 +208,6 @@ FluidSim::FluidSim() : Simulation() {
 }
 
 void FluidSim::init() {
-	
-	simBoundary.resize(6);
-	simBoundary << -halfBoundarySize, halfBoundarySize,
-					0.0f, 2.0f * halfBoundarySize,
-					-halfBoundarySize, halfBoundarySize;
-
 	// just draw a ground plane to satisfy igl... with no geometry it seems to crash!
 	// vertices
 	float floorHalfSize = halfBoundarySize;
@@ -283,6 +270,20 @@ void FluidSim::init() {
 }
 
 void FluidSim::resetMembers() {
+	m_time = 0.0f;
+
+	simBoundary.resize(6);
+	simBoundary << -halfBoundarySize, halfBoundarySize,
+		0.0f, 2.0f * halfBoundarySize,
+		-halfBoundarySize, halfBoundarySize;
+
+	simBoundary_init.resize(6);
+	simBoundary_init << -halfBoundarySize, halfBoundarySize,
+		0.0f, 2.0f * halfBoundarySize,
+		-halfBoundarySize, halfBoundarySize;
+
+	posOffsetx = -envWidth / 2.0f;
+
 	int n = PARTICLES_PER_CUBE_SIDE;
 
 	// repopulate the particle cube, reset colors and all other particle data.
@@ -290,6 +291,9 @@ void FluidSim::resetMembers() {
 	positions2.resize(NUM_ALL_PARTICLES, 3);
 	positionsStar = &positions1;
 	positions = &positions2;
+
+	// store initial positions of boundary particles, which are used when moving the boundary periodically
+	boundary_init_positions.resize(NUM_BOUNDARY_PARTICLES, 3);
 
 	colors1.resize(NUM_ALL_PARTICLES);
 	colors2.resize(NUM_ALL_PARTICLES);
@@ -322,6 +326,7 @@ void FluidSim::resetMembers() {
 		std::cout << "mistake in number of fluid particles!\n";
 
 	// intialize boundary particles
+	int offset = NUM_FLUID_PARTICLES;
 	float xs[] = {  -(halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE,
 					-(halfBoundaryParticle + 1) * BOUNDARY_PARTICLE_DISTANCE,
 					-(halfBoundaryParticle ) * BOUNDARY_PARTICLE_DISTANCE,
@@ -334,6 +339,7 @@ void FluidSim::resetMembers() {
 			z = -(halfBoundaryParticle + 2) * BOUNDARY_PARTICLE_DISTANCE;
 			for (int j = 0; j < BOUNDARY_PARTICLES_XZ; j++) {
 				positions1.row(total_particles) << x_, y, z;
+				boundary_init_positions.row(total_particles - offset) << x_, y, z;
 				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
 				total_particles++;
 				z += BOUNDARY_PARTICLE_DISTANCE;
@@ -354,6 +360,7 @@ void FluidSim::resetMembers() {
 			x = -(halfBoundaryParticle - 1) * BOUNDARY_PARTICLE_DISTANCE;
 			for (int j = 0; j < BOUNDARY_PARTICLES_XZ - 6; j++) {
 				positions1.row(total_particles) << x, y, z_;
+				boundary_init_positions.row(total_particles - offset) << x, y, z_;
 				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
 				total_particles++;
 				x += BOUNDARY_PARTICLE_DISTANCE;
@@ -369,6 +376,7 @@ void FluidSim::resetMembers() {
 			x = -(halfBoundaryParticle - 1) * BOUNDARY_PARTICLE_DISTANCE;
 			for (int j = 0; j < BOUNDARY_PARTICLES_XZ - 6; j++) {
 				positions1.row(total_particles) << x, y_, z;
+				boundary_init_positions.row(total_particles - offset) << x, y_, z;
 				colors1[total_particles] = BOUNDARY_PARTICLE_COLOR;
 				total_particles++;
 				x += BOUNDARY_PARTICLE_DISTANCE;
@@ -442,8 +450,26 @@ bool FluidSim::advance()
 	m_step++;
 	m_time += m_dt;
 
-	// TODO: move boundary and boundary particles periodically
+	// move boundary and boundary particles periodically along x axis
+	if (MOVING_BOUNDARY) {
+		float A = AMPLITUDE;
+		float T = PERIOD;
+		int offset = NUM_FLUID_PARTICLES;
+		for (int i = 0; i < NUM_BOUNDARY_PARTICLES; i++) {
+			float px = boundary_init_positions.row(i).x() + (A * cos(2 * M_PI * m_time / T) - A);
+			float vx = -2 * M_PI * A * sin(2 * M_PI * m_time / T) / T;
 
+			positions1.row(i + offset).x() = px;
+			positions2.row(i + offset).x() = px;
+			velocities1.row(i + offset).x() = vx;
+			velocities2.row(i + offset).x() = vx;
+		}
+		simBoundary[0] = simBoundary_init[0] + (A * cos(2 * M_PI * m_time / T) - A);
+		simBoundary[1] = simBoundary_init[1] + (A * cos(2 * M_PI * m_time / T) - A);
+
+		posOffsetx = posOffsetx_init + (A * cos(2 * M_PI * m_time / T) - A);
+	}
+	
 	return false;
 }
 // Single Threaded Advance method
@@ -677,43 +703,36 @@ Eigen::Vector3f FluidSim::gradSpikyKernel(Eigen::Vector3f r) {
 }
 
 // collision detection
-bool FluidSim::collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactPoint, Eigen::Vector3f& normal) {
+bool FluidSim::collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactPoint) {
 	bool collided = false;
-	normal = Eigen::Vector3f(0.0f, 0.0f, 0.0f);
 	contactPoint = Eigen::Vector3f(pos.x(), pos.y(), pos.z());
 	if (pos.x() < simBoundary[0])
 	{
-		normal.x() += 1.0f;
 		contactPoint.x() = simBoundary[0];
 		collided = true;
 	}
 	if (pos.x() > simBoundary[1])
 	{
-		normal.x() += -1.0f;
 		contactPoint.x() = simBoundary[1];
 		collided = true;
 	}
 	if (pos.y() < simBoundary[2])
 	{
-		normal.y() += 1.0f;
 		contactPoint.y() = simBoundary[2];
 		collided = true;
 	}
 	if (pos.y() > simBoundary[3])
 	{
-		normal.y() += -1.0f;
 		contactPoint.y() = simBoundary[3];
 		collided = true;
 	}
 	if (pos.z() < simBoundary[4])
 	{
-		normal.z() += 1.0f;
 		contactPoint.z() = simBoundary[4];
 		collided = true;
 	}
 	if (pos.z() > simBoundary[5])
 	{
-		normal.z() += -1.0f;
 		contactPoint.z() = simBoundary[5];
 		collided = true;
 	}
