@@ -27,7 +27,7 @@
 
 #define BOUNDARY_PARTICLE_COLOR 1.0f
 
-#define RENDER_ONLY_FLUID true
+#define RENDER_ONLY_FLUID false
 #define ThreadCount 8
 
 #define MOVING_BOUNDARY true
@@ -39,6 +39,9 @@
 // POSITION_WHEIGHT determines the contribution of the particles y-position as opposed to its velocity.
 #define DYNAMIC_PARTICLE_COLORING true
 #define POSITION_WEIGHT 0.5f
+
+// The number of values in the Lookup Table for the smoothing kernels
+#define LUT_COUNT 100
 
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
 class Barrier
@@ -79,7 +82,7 @@ private:
 class FluidSim : public Simulation {
 public:
 	FluidSim();
-
+	
 	virtual void init() override;
 	virtual void resetMembers() override;
 	virtual void updateRenderGeometry() override;
@@ -131,16 +134,21 @@ public:
 	std::vector<unsigned int> bin_prefix_sum;
 	std::vector<unsigned int> neighbor_bin_index;
 
-
+	void perThreadAdvance(int start_index, int end_index, int start2, int end2);
 	std::vector<std::thread> threads;
-	std::vector<int> indices;
+	std::vector<int> indices; // for parallel particle update partitioning
+	std::vector<int> indices2; // for the parallel sort partitioning
 
 	// Precomputed Powers
 	const float pow_h_9 = 315.f / (64.f * M_PI * std::pow(NEIGHBOURHOOD_RADIUS, 9));
 	const float pow_h_6_1 = 15.f / (M_PI * std::pow(NEIGHBOURHOOD_RADIUS, 6));
 	const float pow_h_6_2 = -45.f / (M_PI * std::pow(NEIGHBOURHOOD_RADIUS, 6));
+	std::vector<float> poly6LUT;
+	std::vector<float> spikyLUT;
+	std::vector<float> gradSpikyLUT;
 
-	float m_dt;
+
+	const float m_dt = TIME_STEP_SIZE;
 	float elapsed_t;
 
 	/* PARTICLE DATA
@@ -157,7 +165,6 @@ public:
 
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocitiesStar;
 	Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* velocities;
-	Eigen::VectorXf densities;
 	Eigen::VectorXf lambdas;
 
 	/* vectors to store individual colors for each particle.
@@ -176,7 +183,6 @@ public:
 	Eigen::VectorXf colors1;
 	Eigen::VectorXf colors2;
 
-
 	// slow igl renderer data. Used for boundaries/obstacles and floor.
 	Eigen::MatrixXd m_renderV;
 	Eigen::MatrixXi m_renderF;
@@ -187,5 +193,10 @@ public:
 	float spikyKernel(Eigen::Vector3f distance);
 	Eigen::Vector3f gradSpikyKernel(Eigen::Vector3f r);
 	bool collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactPoint);
+
+	inline float poly6KernelLUT(const Eigen::Vector3f& distance);
+	inline float spikyKernelLUT(const Eigen::Vector3f& distance);
+	inline Eigen::Vector3f gradSpikyKernelLUT(const Eigen::Vector3f& r);
+	float scalargradSpikyLUT(const Eigen::Vector3f& distance); // used to initialize LUT
 };
 #endif

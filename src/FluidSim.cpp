@@ -11,37 +11,42 @@ Barrier preprefix_barrier(ThreadCount + 1);
 Barrier prefix_barrier(ThreadCount + 1);
 
 // The actual Advance method when computing with the threads
-void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
+void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, int s2_end)
 {
 	while (!finished) // TODO: add proper termination (now its infinite -> reset might not work)
 	{
+		std::fill(bin_sub_index.begin() + start_index, bin_sub_index.begin() + end_index, 0);
+		//std::fill(bin_count.begin(), bin_count.end(), 0);
+		for (int i = s2_start; i < s2_end; i++) bin_count[i].store(0);
+		std::fill(bin_prefix_sum.begin() + s2_start, bin_prefix_sum.begin() + s2_end, 0);
+
 		// reset members for neighborhood search
 		start_barrier.wait();
 
 		// delta q from equation (13)
-		const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1, 0.1, 0.1) / 3 * NEIGHBOURHOOD_RADIUS;
-		const float poly6kernel_delta_q = fs->poly6Kernel(delta_q);
+		const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1f, 0.1f, 0.1f) / 3.0f * NEIGHBOURHOOD_RADIUS;
+		const float poly6kernel_delta_q = poly6KernelLUT(delta_q);
 		// apply forces & predict position
 
-		for (int i = start_index; i < end_index; i++) {
-			// do not move boundary particles
-			if (i >= NUM_FLUID_PARTICLES) continue;
+		// do not move boundary particles
+		int end_index_fluid_only = std::min(end_index, NUM_FLUID_PARTICLES);
+		for (int i = start_index; i < end_index_fluid_only; i++) {
 
 			// apply gravity
-			fs->velocities->row(i) += fs->m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
+			velocities->row(i) += m_dt * Eigen::Vector3f(0.0f, -9.81f, 0.0f);
 			// predict position
-			fs->positionsStar->row(i) = fs->positions->row(i) + fs->m_dt * fs->velocities->row(i);
+			positionsStar->row(i) = positions->row(i) + m_dt * velocities->row(i);
 		}
 
 		for (int i = start_index; i < end_index; i++)
 		{
-			const Eigen::Vector3f& pos = fs->positionsStar->row(i);
-			int gridPosX = std::floor(fs->relPos * (pos.x() - fs->posOffsetx));
-			int gridPosY = std::floor(fs->relPos * (pos.y() + fs->posOffsety));
-			int gridPosZ = std::floor(fs->relPos * (pos.z() + fs->posOffsetz));
-			int entryPos = gridPosX + gridPosY * fs->gridWidth + gridPosZ * fs->gridWidth * fs->gridWidth;
-			fs->bin_index[i] = entryPos;
-			fs->bin_sub_index[i] = fs->bin_count[entryPos].fetch_add(1); // out of range value!!!!
+			const Eigen::Vector3f& pos = positionsStar->row(i);
+			int gridPosX = std::floor(relPos * (pos.x() - posOffsetx));
+			int gridPosY = std::floor(relPos * (pos.y() + posOffsety));
+			int gridPosZ = std::floor(relPos * (pos.z() + posOffsetz));
+			int entryPos = gridPosX + gridPosY * gridWidth + gridPosZ * gridWidth * gridWidth;
+			bin_index[i] = entryPos;
+			bin_sub_index[i] = bin_count[entryPos].fetch_add(1);
 		}
 
 		preprefix_barrier.wait();
@@ -50,9 +55,9 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 		//reinsert particles according to prefix sum and sub index.
 		for (int i = start_index; i < end_index; i++)
 		{
-			int starting_location = fs->bin_prefix_sum[fs->bin_index[i]];
-			int offset = fs->bin_sub_index[i];
-			fs->neighbor_bin_index[starting_location + offset] = i;
+			int starting_location = bin_prefix_sum[bin_index[i]];
+			int offset = bin_sub_index[i];
+			neighbor_bin_index[starting_location + offset] = i;
 		}
 		// neighbor search is done by now.
 
@@ -65,9 +70,9 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 			// calculate lambda_i (equation 11)
 			for (int i = start_index; i < end_index; ++i) {
 				// calculate density
-				fs->densities[i] = 0.0f;
-				const Eigen::RowVector3f& pos_i = fs->positionsStar->row(i);
-				int p_bin = fs->bin_index[i];
+				float density = 0.0f;
+				const Eigen::RowVector3f& pos_i = positionsStar->row(i);
+				int p_bin = bin_index[i];
 
 				// calculate denominator, equation (11)
 				float denominator = 0.0f;
@@ -79,22 +84,21 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				{
 					for (int y = -1; y < 2; y++)
 					{
-						int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
-						int bin_start = fs->bin_prefix_sum[actual_bin];
-						int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
+						int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
+						int bin_start = bin_prefix_sum[actual_bin];
+						int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
 						for (int n = bin_start; n < bin_end; n++) // for each neighbor
 						{
-							int n_index = fs->neighbor_bin_index[n];
-							const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
+							int n_index = neighbor_bin_index[n];
+							const Eigen::RowVector3f& pos_j = positionsStar->row(n_index);
 
 							if (n_index != i) // omit same particle
 							{
-								fs->densities[i] += fs->poly6Kernel(pos_i - pos_j); // equation (2)
-								d_pk_Ci += fs->gradSpikyKernel(pos_i - pos_j);
-								d_pk_Ci_same = -1.0f * fs->gradSpikyKernel(pos_i - pos_j);
+								density += poly6KernelLUT(pos_i - pos_j);
+								d_pk_Ci += gradSpikyKernelLUT(pos_i - pos_j);
+								d_pk_Ci_same = -1.0f * gradSpikyKernelLUT(pos_i - pos_j);
 								d_pk_Ci_same *= 1.0f / REST_DENSITY;
 								denominator += d_pk_Ci_same.squaredNorm();
-
 							}
 						}
 					}
@@ -102,10 +106,10 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 
 				d_pk_Ci *= 1.0f / REST_DENSITY;
 				denominator += d_pk_Ci.squaredNorm();
-				float C_i = fs->densities[i] / REST_DENSITY - 1.f;
+				float C_i = density / REST_DENSITY - 1.f;
 
 				denominator += EPSILON;
-				fs->lambdas[i] = -C_i / denominator; // equation (11)
+				lambdas[i] = -C_i / denominator; // equation (11)
 
 
 				// calculate delta_p_i, equation (12, rsp. 14 for tensile stability)
@@ -117,17 +121,17 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 					{
 						for (int y = -1; y < 2; y++)
 						{
-							int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
-							int bin_start = fs->bin_prefix_sum[actual_bin];
-							int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
+							int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
+							int bin_start = bin_prefix_sum[actual_bin];
+							int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
 							for (int n = bin_start; n < bin_end; n++) // for each neighbor
 							{
-								int n_index = fs->neighbor_bin_index[n];
-								const Eigen::RowVector3f& pos_j = fs->positionsStar->row(n_index);
+								int n_index = neighbor_bin_index[n];
+								const Eigen::RowVector3f& pos_j = positionsStar->row(n_index);
 
 								if (n_index != i) // omit same particle
 								{
-									delta_pi += (fs->lambdas[i] + fs->lambdas[n_index]) * fs->gradSpikyKernel(pos_i - pos_j); // equation (12)
+									delta_pi += (lambdas[i] + lambdas[n_index]) * gradSpikyKernelLUT(pos_i - pos_j);
 								}
 							}
 						}
@@ -139,19 +143,18 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 				// do not move boundary particles
 				if (i < NUM_FLUID_PARTICLES) {
 					Eigen::RowVector3f contactPoint;
-					// TODO: DANGEROUS -> too high velocities will push particles out of border too far -> there are no grids for neighbors in those areas and program will crash
 					// a very basic solution could be to use a smaller time step
-					if (fs->collision(pos_i, contactPoint)) {
+					if (collision(pos_i, contactPoint)) {
 						//std::cout << "collision" << std::endl;
 
-						fs->positionsStar->row(i) = contactPoint;						
+						positionsStar->row(i) = contactPoint;						
 					}
 				}
 
 				// update position
 				// do not move boundary particles
 				if(i < NUM_FLUID_PARTICLES)
-					fs->positionsStar->row(i) += delta_pi;
+					positionsStar->row(i) += delta_pi;
 
 				// An idea for even faster collision detection... directly project to valid position... but requires more solver iterations in order to not break stuff
 				/*
@@ -167,36 +170,34 @@ void perThreadAdvance(int start_index, int end_index, FluidSim* fs)
 			}
 		}
 
-		for (int i = start_index; i < end_index; ++i) {
+		for (int i = start_index; i < end_index_fluid_only; ++i) {
 			// do not move boundary particles
-			if (i >= NUM_FLUID_PARTICLES) continue;
 
 			// update velocity
-			fs->velocities->row(i) = 1 / fs->m_dt * (fs->positionsStar->row(i) - fs->positions->row(i));
+			velocities->row(i) = 1 / m_dt * (positionsStar->row(i) - positions->row(i));
 			
 			// OPTIONAL: apply vorticity confinement
 			// not for now
 
 			// OPTIONAL: apply XSPH viscosity, equation (17)
 			const float c = 0.01f;
-			fs->velocitiesStar->row(i) = fs->velocities->row(i);
-			int p_bin = fs->bin_index[i];
+			velocitiesStar->row(i) = velocities->row(i);
+			int p_bin = bin_index[i];
 			for (int z = -1; z < 2; z++)
 			{
 				for (int y = -1; y < 2; y++)
 				{
-					int actual_bin = p_bin - 1 + y * fs->gridWidth + z * fs->gridWidth * fs->gridWidth;
-					int bin_start = fs->bin_prefix_sum[actual_bin];
-					int bin_end = fs->bin_prefix_sum[actual_bin + 1 + 2];
+					int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
+					int bin_start = bin_prefix_sum[actual_bin];
+					int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
 					for (int n = bin_start; n < bin_end; n++) // for each neighbor
 					{
-						int n_index = fs->neighbor_bin_index[n];
-						const Eigen::Vector3f& v_ij= fs->velocities->row(n_index) - fs->velocities->row(i);
-						fs->velocitiesStar->row(i) += c * v_ij * fs->poly6Kernel(fs->positionsStar->row(i) - fs->positionsStar->row(n_index));
+						int n_index = neighbor_bin_index[n];
+						const Eigen::Vector3f& v_ij= velocities->row(n_index) - velocities->row(i);
+						velocitiesStar->row(i) += c * v_ij * poly6KernelLUT(positionsStar->row(i) - positionsStar->row(n_index));
 					}
 				}
 			}
-
 		}
 
 		end_barrier.wait();
@@ -231,7 +232,6 @@ void FluidSim::init() {
 		0, 2.0f * floorHalfSize;
 
 	// setup
-	m_dt = TIME_STEP_SIZE;
 
 	// populates the particle cube and all particles initial data.
 	resetMembers();
@@ -252,21 +252,43 @@ void FluidSim::init() {
 	// indices = std::vector<int>(ThreadCount + 1, NUM_FLUID_PARTICLES);
 	indices = std::vector<int>(ThreadCount + 1, NUM_ALL_PARTICLES);
 	indices[0] = 0;
+
+	indices2 = std::vector<int>(ThreadCount + 1, gridWidth * gridWidth * gridWidth);
+	indices2[0] = 0;
 	// int amount = NUM_FLUID_PARTICLES / ThreadCount; // work per thread
 	int amount = NUM_ALL_PARTICLES / ThreadCount; // work per thread
 	int upto = amount;
+	int amount2 = gridWidth * gridWidth * gridWidth / ThreadCount;
+	int upto2 = amount2;
 	for (int i = 1; i < indices.size() - 1; i++)
 	{
 		indices[i] = upto;
+		indices2[i] = upto2;
 		upto += amount;
+		upto2 += amount2;
 	}
 	// indices[indices.size() - 1] = NUM_FLUID_PARTICLES;
 	indices[indices.size() - 1] = NUM_ALL_PARTICLES;
 
 	for (int i = 0; i < ThreadCount; i++)
 	{
-		threads.push_back(std::thread(perThreadAdvance, indices[i], indices[i + 1], this));
+		threads.push_back(std::thread(&FluidSim::perThreadAdvance, this, indices[i], indices[i + 1], indices2[i], indices2[i + 1]));
 	}
+
+	// initialize LUTs for smoothing Kernels
+	float spacing = NEIGHBOURHOOD_RADIUS / (float)LUT_COUNT;
+	for (int i = 0; i < LUT_COUNT; i++)
+	{
+		float length = spacing * i;
+		Eigen::Vector3f v(length, 0.0f, 0.0f); // kernel depends on length of distance only
+		poly6LUT.push_back(poly6Kernel(v));
+		spikyLUT.push_back(spikyKernel(v));
+		gradSpikyLUT.push_back(scalargradSpikyLUT(v));
+	}
+	poly6LUT.push_back(0.0f);
+	spikyLUT.push_back(0.0f);
+	gradSpikyLUT.push_back(0.0f);
+	gradSpikyLUT[0] = 0.0f;
 }
 
 void FluidSim::resetMembers() {
@@ -401,7 +423,6 @@ void FluidSim::resetMembers() {
 	velocities2 = Eigen::Matrix<float, -1, -1, Eigen::RowMajor>::Zero(NUM_ALL_PARTICLES, 3);
 	velocitiesStar = &velocities1;
 	velocities = &velocities2;
-	densities = Eigen::VectorXf::Zero(NUM_ALL_PARTICLES);
 	lambdas = Eigen::VectorXf::Zero(NUM_ALL_PARTICLES);
 
 	// for fast neighborhood search
@@ -433,11 +454,6 @@ void FluidSim::updateRenderGeometry() {
 // TODO: possibly parallelize prefix sum and resetting of vectors if it helps
 bool FluidSim::advance()
 {
-	std::fill(bin_sub_index.begin(), bin_sub_index.end(), 0);
-	//std::fill(bin_count.begin(), bin_count.end(), 0);
-	for (int i = 0; i < gridWidth * gridWidth * gridWidth; i++) bin_count[i].store(0);
-	std::fill(bin_prefix_sum.begin(), bin_prefix_sum.end(), 0);
-
 	// do stuff in parallel
 	start_barrier.wait(); // should get everything to start...
 
@@ -770,4 +786,32 @@ bool FluidSim::collision(const Eigen::Vector3f pos, Eigen::RowVector3f& contactP
 		collided = true;
 	}
 	return collided;
+}
+
+// LUT versions of smoothing kernels, Originals still required to generate Table values
+inline float FluidSim::poly6KernelLUT(const Eigen::Vector3f& distance)
+{
+	float norm = std::min(1.0f ,distance.norm() / NEIGHBOURHOOD_RADIUS); // clamp range to [0,1]
+	return poly6LUT[(size_t)(norm * LUT_COUNT)];
+}
+inline float FluidSim::spikyKernelLUT(const Eigen::Vector3f& distance)
+{
+	float norm = std::min(1.0f, distance.norm() / NEIGHBOURHOOD_RADIUS);
+	return spikyLUT[(size_t)(norm * LUT_COUNT)];
+}
+inline Eigen::Vector3f FluidSim::gradSpikyKernelLUT(const Eigen::Vector3f& r)
+{
+	float norm = std::min(1.0f, r.norm() / NEIGHBOURHOOD_RADIUS);
+	return gradSpikyLUT[(size_t)(norm * LUT_COUNT)] * r;
+}
+
+float FluidSim::scalargradSpikyLUT(const Eigen::Vector3f& r)
+{
+	float r_norm = r.norm();
+	if (0.0001 <= r_norm && r_norm <= NEIGHBOURHOOD_RADIUS) {
+		return pow_h_6_2 * std::pow(NEIGHBOURHOOD_RADIUS - r_norm, 2) / r_norm;
+	}
+	else {
+		return 0.0f;
+	}
 }
