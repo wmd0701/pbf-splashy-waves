@@ -26,7 +26,7 @@ InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* 
 		if (colors != nullptr)
 		{
 			//if (colors->size() == m_particleCount)
-			if (colors->size() <= m_particleCount)
+			if (colors->size() >= m_particleCount)
 			{
 				perInstanceColor = true;
 				p_particleColors = colors;
@@ -34,9 +34,10 @@ InstancedViewer::InstancedViewer(Eigen::Matrix<float, -1, -1, Eigen::RowMajor>* 
 			else
 			{
 				//std::cout << "Instanced Viewer requires exactly one float value as color per particle.\n";
-				std::cout << "Less colors than needed.\n";
+				std::cout << "Less colors than needed. Setting needed values to dummy color.\n";
 				perInstanceColor = false;
-				dummyColor = Eigen::VectorXf::Zero(m_particleCount);
+				dummyColor = Eigen::VectorXf::Ones(m_particleCount) * 0.0f; // dummy color of 0
+				dummyColor.head(colors->size()) = *colors;
 				p_particleColors = &dummyColor;
 			}
 		}
@@ -101,7 +102,7 @@ void InstancedViewer::init(igl::opengl::glfw::Viewer* v)
 
 
 	m_uniformParticleColor = glGetUniformLocation(m_shaderProgram, "particleColor");
-	glUniform3f(m_uniformParticleColor, 1.0f, 0.0f, 0.0f); // basic is bright red
+	glUniform3f(m_uniformParticleColor, 0.0f, 0.0f, 1.0f); // basic is bright blue
 	m_particleSize = glGetUniformLocation(m_shaderProgram, "particleSize");
 	glUniform1f(m_particleSize, 0.5f); // default is radius of 0.5
 	m_colorPerInstance = glGetUniformLocation(m_shaderProgram, "colorPerInstance");
@@ -138,7 +139,8 @@ void InstancedViewer::initShaders()
 			{
 				normal_world = vertexNormal;
 				position_world = vertexPos;
-				color = vec3(1.0,0.0,0.0) * InstanceColor + vec3(0.0,0.0,1.0) * (1.0-InstanceColor);
+				// color gradient from blue to white
+				color = vec3(1.0,1.0,1.0) * InstanceColor + vec3(0.0,0.0,1.0) * (1.0-InstanceColor);
 				gl_Position = proj * view * vec4(particleSize * vertexPos + particlePosition, 1.0);
 			}
 		)";
@@ -167,6 +169,7 @@ void InstancedViewer::initShaders()
 
 				// choose wheter to use uniform particle color or instanced color
 				vec3 actualColor = colorPerInstance * color + (1.0-colorPerInstance) * particleColor;
+				//vec3 actualColor = particleColor;
 
 				FragColor = vec4((ambient + diffuse) * actualColor, 1.0);
 			} 
@@ -317,7 +320,7 @@ bool InstancedViewer::setPerInstanceColor(bool isPerInstance)
 		if (isPerInstance)
 		{
 			// only make switch if there are enough colors per particle!
-			if (p_particlePositions->rows() == p_particleColors->size())
+			if (p_particlePositions->rows() >= p_particleColors->size())
 			{
 				perInstanceColor = true;
 				glUniform1f(m_colorPerInstance, 1.0f);

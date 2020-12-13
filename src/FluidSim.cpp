@@ -317,11 +317,17 @@ void FluidSim::resetMembers() {
 			{
 				z += PARTICLE_DISTANCE;
 				positions1.row(i * n * n + j * n + k) << x, y, z;
-				colors1[i * n * n + j * n + k] = (float)(i * n * n + j * n) / (float)(n * n * n);
+				//colors1[i * n * n + j * n + k] = (float)(i * n * n + j * n) / (float)(n * n * n);
+				// initialize colors to match dynamic coloring
+				colors1[i * n * n + j * n + k] = DYNAMIC_PARTICLE_COLORING ?
+						y/(n* PARTICLE_DISTANCE*2) :
+						(float)(i * n * n + j * n) / (float)(n * n * n);
+				//colors1[i * n * n + j * n + k] = y/(n* PARTICLE_DISTANCE*2);
 				total_particles++;
 			}
 		}
 	}
+
 	if (total_particles != NUM_FLUID_PARTICLES) 
 		std::cout << "mistake in number of fluid particles!\n";
 
@@ -449,6 +455,32 @@ bool FluidSim::advance()
 	// advance step
 	m_step++;
 	m_time += m_dt;
+
+	// update coloring of particles according to their velocity & y-position
+	if (DYNAMIC_PARTICLE_COLORING) {
+		int n = PARTICLES_PER_CUBE_SIDE;
+
+		// calculate maximum Velocity to normalize later
+		float maxVelocity = 1.0;
+		for (int i = 0; i < n*n*n; ++i) {
+			float vel = velocities->row(i).norm();
+			if (vel > maxVelocity){
+				maxVelocity = vel;
+			}
+		}
+		//cout << maxVelocity << endl;
+
+		// iterate over all particles and assign new colors
+		float position_scale = n* PARTICLE_DISTANCE*2;
+		for (int i = 0; i < n*n*n; ++i) {
+			// colors are a weighted combination of their velocity and y-coordinate
+			colors1[i] = (1 - POSITION_WEIGHT)*(1 / exp(1 - velocities->row(i).norm() / maxVelocity))
+											+ POSITION_WEIGHT * positions->row(i).y()/position_scale;
+		}
+
+		this->updateColors = &colors1;
+	}
+
 
 	// move boundary and boundary particles periodically along x axis
 	if (MOVING_BOUNDARY) {
@@ -654,7 +686,8 @@ void FluidSim::renderRenderGeometry(
 
 		p_iviewer->init(&viewer);
 		p_iviewer->setParticleSize(PARTICLE_RADIUS);
-		//p_iviewer->setPerInstanceColor(false);
+		p_iviewer->setPerInstanceColor(true);
+
 		initializedInstancedViewer = true;
 	}
 
@@ -665,7 +698,7 @@ void FluidSim::renderRenderGeometry(
 	// update positions only of fluid particles
 	//p_iviewer->updatePositions(positions, NUM_FLUID_PARTICLES);
 
-	//p_iviewer->updateColors(renderColors);
+	p_iviewer->updateColors(renderColors);
 	p_iviewer->drawInstanced();
 }
 

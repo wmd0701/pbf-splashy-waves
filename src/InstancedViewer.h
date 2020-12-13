@@ -41,7 +41,7 @@ private:
 	void initShaders();
 	void initParticleMesh();
 	
-	bool perInstanceColor = false;
+	bool perInstanceColor = true;
 	
 	// reference to the igl viewer created by the GUI class.
 	// it is used as a hook into the "normal rendering" for retrieving projection matrices and such.

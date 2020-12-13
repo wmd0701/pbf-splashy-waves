@@ -28,11 +28,17 @@
 #define BOUNDARY_PARTICLE_COLOR 1.0f
 
 #define RENDER_ONLY_FLUID true
-#define ThreadCount 10
+#define ThreadCount 8
 
 #define MOVING_BOUNDARY true
 #define AMPLITUDE 1.5f
 #define PERIOD 4.0f
+
+// dynamic particle coloring ("Foam") colors the particles with colors in [0,1] as [blue, white]. If set to true,
+// the color gets calculated as weighted sum between velocity and y-position of each particle.
+// POSITION_WHEIGHT determines the contribution of the particles y-position as opposed to its velocity.
+#define DYNAMIC_PARTICLE_COLORING true
+#define POSITION_WEIGHT 0.5f
 
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
 class Barrier
