@@ -106,7 +106,8 @@ public:
 	// would work. If setting the boundary to be high, use a small time step to make sure no fluid particle
 	// get sticked to the boundary wall
 	// const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE / 3;
-	const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE * 2;
+	// const int BOUNDARY_PARTICLES_Y = PARTICLES_PER_CUBE_SIDE * 2;
+	const int BOUNDARY_PARTICLES_Y = 3;
 	
 	// 3 layers of boundary particles
 	// totoal number of boundary particles is 6*XZ*Y + 6*(XZ-6)*Y + 3*(XZ-6)^2
@@ -149,7 +150,6 @@ public:
 
 
 	const float m_dt = TIME_STEP_SIZE;
-	float elapsed_t;
 
 	/* PARTICLE DATA
 	 * positions (and colors) are double buffered,
