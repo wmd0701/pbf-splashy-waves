@@ -16,7 +16,6 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 	while (!finished) // TODO: add proper termination (now its infinite -> reset might not work)
 	{
 		std::fill(bin_sub_index.begin() + start_index, bin_sub_index.begin() + end_index, 0);
-		//std::fill(bin_count.begin(), bin_count.end(), 0);
 		for (int i = s2_start; i < s2_end; i++) bin_count[i].store(0);
 		std::fill(bin_prefix_sum.begin() + s2_start, bin_prefix_sum.begin() + s2_end, 0);
 
@@ -26,7 +25,8 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 		// delta q from equation (13)
 		const Eigen::Vector3f delta_q = Eigen::Vector3f(0.1f, 0.1f, 0.1f) / 3.0f * NEIGHBOURHOOD_RADIUS;
 		const float poly6kernel_delta_q = poly6KernelLUT(delta_q);
-		// apply forces & predict position
+
+		//// apply forces & predict position
 
 		// do not move boundary particles
 		int end_index_fluid_only = std::min(end_index, NUM_FLUID_PARTICLES);
@@ -64,8 +64,7 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 		barrier.wait();
 
 		// newton iterations
-		int solverIterations = 1;
-		for (int iter = 0; iter < solverIterations; ++iter) {
+		for (int iter = 0; iter < SOLVER_ITERATIONS; ++iter) {
 
 			// calculate lambda_i (equation 11)
 			for (int i = start_index; i < end_index; ++i) {
@@ -145,8 +144,6 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 					Eigen::RowVector3f contactPoint;
 					// a very basic solution could be to use a smaller time step
 					if (collision(pos_i, contactPoint)) {
-						//std::cout << "collision" << std::endl;
-
 						positionsStar->row(i) = contactPoint;						
 					}
 				}
@@ -176,28 +173,28 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 			// update velocity
 			velocities->row(i) = 1 / m_dt * (positionsStar->row(i) - positions->row(i));
 			
-			// OPTIONAL: apply vorticity confinement
-			// not for now
-
 			// OPTIONAL: apply XSPH viscosity, equation (17)
-			const float c = 0.01f;
-			velocitiesStar->row(i) = velocities->row(i);
-			int p_bin = bin_index[i];
-			for (int z = -1; z < 2; z++)
-			{
-				for (int y = -1; y < 2; y++)
+			if (XSPH_VISCOSITY) {
+				const float c = 0.01f;
+				velocitiesStar->row(i) = velocities->row(i);
+				int p_bin = bin_index[i];
+				for (int z = -1; z < 2; z++)
 				{
-					int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
-					int bin_start = bin_prefix_sum[actual_bin];
-					int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
-					for (int n = bin_start; n < bin_end; n++) // for each neighbor
+					for (int y = -1; y < 2; y++)
 					{
-						int n_index = neighbor_bin_index[n];
-						const Eigen::Vector3f& v_ij= velocities->row(n_index) - velocities->row(i);
-						velocitiesStar->row(i) += c * v_ij * poly6KernelLUT(positionsStar->row(i) - positionsStar->row(n_index));
+						int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
+						int bin_start = bin_prefix_sum[actual_bin];
+						int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
+						for (int n = bin_start; n < bin_end; n++) // for each neighbor
+						{
+							int n_index = neighbor_bin_index[n];
+							const Eigen::Vector3f& v_ij= velocities->row(n_index) - velocities->row(i);
+							velocitiesStar->row(i) += c * v_ij * poly6KernelLUT(positionsStar->row(i) - positionsStar->row(n_index));
+						}
 					}
 				}
 			}
+
 		}
 
 		end_barrier.wait();
@@ -249,13 +246,11 @@ void FluidSim::init() {
 		p_iviewer = new InstancedViewer(positions, renderColors);
 	
 	// for threaded advance, sets range for each thread and starts the "pool"
-	// indices = std::vector<int>(ThreadCount + 1, NUM_FLUID_PARTICLES);
 	indices = std::vector<int>(ThreadCount + 1, NUM_ALL_PARTICLES);
 	indices[0] = 0;
 
 	indices2 = std::vector<int>(ThreadCount + 1, gridWidth * gridWidth * gridWidth);
 	indices2[0] = 0;
-	// int amount = NUM_FLUID_PARTICLES / ThreadCount; // work per thread
 	int amount = NUM_ALL_PARTICLES / ThreadCount; // work per thread
 	int upto = amount;
 	int amount2 = gridWidth * gridWidth * gridWidth / ThreadCount;
@@ -267,7 +262,6 @@ void FluidSim::init() {
 		upto += amount;
 		upto2 += amount2;
 	}
-	// indices[indices.size() - 1] = NUM_FLUID_PARTICLES;
 	indices[indices.size() - 1] = NUM_ALL_PARTICLES;
 
 	for (int i = 0; i < ThreadCount; i++)
@@ -339,12 +333,10 @@ void FluidSim::resetMembers() {
 			{
 				z += PARTICLE_DISTANCE;
 				positions1.row(i * n * n + j * n + k) << x, y, z;
-				//colors1[i * n * n + j * n + k] = (float)(i * n * n + j * n) / (float)(n * n * n);
 				// initialize colors to match dynamic coloring
 				colors1[i * n * n + j * n + k] = DYNAMIC_PARTICLE_COLORING ?
 						y/(n* PARTICLE_DISTANCE*2) :
 						(float)(i * n * n + j * n) / (float)(n * n * n);
-				//colors1[i * n * n + j * n + k] = y/(n* PARTICLE_DISTANCE*2);
 				total_particles++;
 			}
 		}
@@ -429,7 +421,6 @@ void FluidSim::resetMembers() {
 	int totalGridCells = gridWidth * gridWidth * gridWidth;
 	bin_index = std::vector<unsigned int>(NUM_ALL_PARTICLES);
 	bin_sub_index = std::vector<unsigned int>(NUM_ALL_PARTICLES, 0);
-	//bin_count = std::vector<unsigned int>(totalGridCells, 0);
 	bin_count = std::vector<std::atomic<unsigned int>>(totalGridCells);
 	for (int i = 0; i < totalGridCells; i++) bin_count[i].store(0);
 	bin_prefix_sum = std::vector<unsigned int>(totalGridCells, 0);
@@ -476,7 +467,7 @@ bool FluidSim::advance()
 	if (DYNAMIC_PARTICLE_COLORING) {
 		int n = PARTICLES_PER_CUBE_SIDE;
 
-		// calculate maximum Velocity to normalize later
+		// calculate maximum Velocity for normalization
 		float maxVelocity = 1.0;
 		for (int i = 0; i < n*n*n; ++i) {
 			float vel = velocities->row(i).norm();
@@ -484,7 +475,6 @@ bool FluidSim::advance()
 				maxVelocity = vel;
 			}
 		}
-		//cout << maxVelocity << endl;
 
 		// iterate over all particles and assign new colors
 		float position_scale = n* PARTICLE_DISTANCE*2;

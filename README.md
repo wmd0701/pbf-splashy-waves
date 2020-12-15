@@ -16,6 +16,8 @@ In order to achieve better visual effect, we recommend to run the simluation in 
 You can modify the following values in FluidSim.h to tune the simulation.
 
 - TIME_STEP_SIZE:               time step between two iterations
+- SOLVER_ITERATIONS:            number of newton steps, keep at 1 for best performance
+- XSPH_VISCOSITY:               apply XSPH viscosity, important for coherent motion
 - PARTICLE_DISTANCE:            distance between two neighboring fluid particles when initializing
 - PARTICLE_RADIUS:              how large each particle should be rendered
 - NEIGHBOURHOOD_RADIUS:         smoothing length for SPH kernel function

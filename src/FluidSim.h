@@ -8,6 +8,8 @@
 #include <condition_variable>
 
 #define TIME_STEP_SIZE 0.04f
+#define SOLVER_ITERATIONS 1
+#define XSPH_VISCOSITY true
 #define REST_DENSITY 1.f
 
 // user specified relaxation parameter (equation 11):
