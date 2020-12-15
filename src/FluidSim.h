@@ -14,7 +14,7 @@
 
 // user specified relaxation parameter (equation 11):
 // Bigger -> slower contraction of particles: influences the negative pressure inverse proportionally
-#define EPSILON 1.0f
+#define EPSILON 1.1f
 
 // taking idea from http://www.unige.ch/math/folks/sutti/SPH_2019.pdf
 // kernel smoothing length = 2.4 * distance between two neighboring particles
@@ -24,7 +24,7 @@
 #define NEIGHBOURHOOD_RADIUS 2.4f * PARTICLE_DISTANCE
 #define BOUNDARY_PARTICLE_DISTANCE 0.8f
 
-#define PARTICLES_PER_CUBE_SIDE 8
+#define PARTICLES_PER_CUBE_SIDE 25
 #define NUM_FLUID_PARTICLES PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE * PARTICLES_PER_CUBE_SIDE
 
 #define BOUNDARY_PARTICLE_COLOR 1.0f
@@ -46,6 +46,7 @@
 #define LUT_COUNT 100
 
 // Reusable Barrier class to synchronize all threads. C++20 has its own std::barrier but it doesn't work for me.
+// Copied from the answer of user UmNyobe, at https://stackoverflow.com/questions/38999911/what-is-the-best-way-to-realize-a-synchronization-barrier-between-threads, accessed 18.11.20.
 class Barrier
 {
 
@@ -63,7 +64,7 @@ public:
 		++counter;
 		++waiting;
 		cv.wait(lk, [&] {return counter >= thread_count; });
-		cv.notify_all();
+		cv.notify_all(); // only change
 		--waiting;
 		if (waiting == 0)
 		{

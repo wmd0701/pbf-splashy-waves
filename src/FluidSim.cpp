@@ -85,7 +85,7 @@ void FluidSim::perThreadAdvance(int start_index, int end_index, int s2_start, in
 					{
 						int actual_bin = p_bin - 1 + y * gridWidth + z * gridWidth * gridWidth;
 						int bin_start = bin_prefix_sum[actual_bin];
-						int bin_end = bin_prefix_sum[actual_bin + 1 + 2];
+						int bin_end = bin_prefix_sum[actual_bin + 1 + 2]; // all 3 cells along x are right next to each other.
 						for (int n = bin_start; n < bin_end; n++) // for each neighbor
 						{
 							int n_index = neighbor_bin_index[n];
