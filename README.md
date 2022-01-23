@@ -1,6 +1,6 @@
 # PBS HS2020 - Project "PBF Splashy Waves"
 
-This is the project for master course Physically-Based Simulation in Computer Graphics offered at ETHZ in 2020 autumn semester. We are group 17 and we implement water splashing/sloshing in container with Position Based Dynamics method (PBD), which resembles Smoothed Particle Hydrodynamic (SPH), but inherits the stability of the geometric, position based dynamics method, allowing large time steps suitable for real-time applications. The paper which we follow can be found here: https://mmacklin.com/pbf_sig_preprint.pdf.
+This is the project for master course Physically-Based Simulation in Computer Graphics offered at ETHZ in 2020 autumn semester. We are group 17 and we implement water splashing/sloshing in container with **Position Based Dynamics method (PBD)**, which resembles **Smoothed Particle Hydrodynamic (SPH)**, but inherits the stability of the geometric, position based dynamics method, allowing large time steps suitable for real-time applications. The paper which we follow can be found [here](https://mmacklin.com/pbf_sig_preprint.pdf).
 
 The simulation starts with an amount of fluid particles initialized in the air and then drop into the container. The container moves along x-axis periodically. Both the fluid fall and the movement of container produce fluid splashing/sloshing.
 
